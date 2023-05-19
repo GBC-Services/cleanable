@@ -1,0 +1,21 @@
+{% extends "base.html" %}>
+{% load crispy_forms_tags %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <div class="h3 text-center">Place {% if object %}Update{% else %}Create{% endif %}</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <div class="card">
+                    <div class="card-body">
+                        {% crispy form %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

@@ -34,6 +34,11 @@ admin.autodiscover()
 
 urlpatterns = [
   path('adminishidden/', admin.site.urls),
+  path('', include('cleaners.urls')),
+  path('', include('cleanings.urls')),
+  path('', include('clients.urls')),
+  path('', include('companies.urls')),
+  path('', include('subscriptions.urls')),
   path('', include('users.urls')),
   path('accounts/', include('allauth.urls')),
 ] \

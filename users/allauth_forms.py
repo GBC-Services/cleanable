@@ -1,7 +1,6 @@
 from django import forms
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext as _
-from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Field, Submit, HTML, Div, Row, Column
 from crispy_bootstrap5.bootstrap5 import FloatingField
@@ -15,7 +14,7 @@ from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
 from captcha.fields import ReCaptchaField
 from django.conf import settings
-
+from django.utils.safestring import mark_safe
 
 current_site = Site.objects.get_current()
 CURRENT_SITE_NAME = current_site.name
@@ -49,7 +48,7 @@ class CustomLoginForm(LoginForm):
                 css_class=''
             ),
             Row(
-                Submit('submit', 'Sign In', css_class="btn btn-black btn-block text-uppercase")
+                Submit('submit', 'Sign In', css_class="btn btn-primary btn-block text-uppercase")
             )
         )
 
@@ -68,15 +67,17 @@ class CustomSignupForm(SignupForm):
     password1 = forms.CharField(label=False,
                                 widget=forms.PasswordInput(attrs={"placeholder": _("Password")}))
     password2 = forms.CharField(label=False, widget=forms.PasswordInput(attrs={"placeholder": _("Password again")}))
-    is_accepted_tos = forms.BooleanField(required=True, label=f'I accept <a href="{reverse("terms_of_use")}" '
-                                                              f'target="_blank">Terms of Use</a>')
-    is_accepted_pp = forms.BooleanField(required=True, label=f'I accept <a href="{reverse("privacy_policy")}" '
-                                                             f'target="_blank">Privacy Policy</a>')
+    is_accepted_tos = forms.BooleanField(required=True, label=mark_safe(f'I accept '
+                                                                        f'<a href="{reverse("terms_of_use")}" '
+                                                                        f'target="_blank">Terms of Use</a>'))
+    is_accepted_pp = forms.BooleanField(required=True, label=mark_safe(f'I accept '
+                                                                       f'<a href="{reverse("privacy_policy")}" '
+                                                                        f'target="_blank">Privacy Policy</a>'))
     is_accepted_emails = forms.BooleanField(required=False,
                                             label="Receive email updates about our service "
                                                   "and other related products (no third party emails)")
 
-    field_order = ["first_name", "email", "password1", "password2", "is_accepted_tos",
+    field_order = ["role", "first_name", "email", "password1", "password2", "is_accepted_tos",
                    "is_accepted_pp", "is_accepted_emails",]
 
     def __init__(self, *args, **kwargs):
@@ -93,6 +94,7 @@ class CustomSignupForm(SignupForm):
             captcha = None
 
         self.helper.layout = Layout(
+            FloatingField("role"),
             Div(
                 Div(FloatingField('first_name', autocomplete='off', placeholder=_("First Name")),
                     css_class="col-lg-6 col-md-12"

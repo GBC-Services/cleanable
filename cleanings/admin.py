@@ -1,6 +1,21 @@
 from django.contrib import admin
-from .models import (CleaningStatus, FeedbackTagForCleaner, FeedbackTagForClient,
-    Cleaning, AddOn, CleaningAddOn)
+from .models import (CleaningType, RegularityType, CleaningRequest, CleaningStatus,
+                     FeedbackTagForCleaner, FeedbackTagForClient, Cleaning, AddOn, CleaningAddOn)
+
+
+@admin.register(CleaningType)
+class CleaningTypeAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in CleaningType._meta.fields]
+
+
+@admin.register(RegularityType)
+class RegularityTypeAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in RegularityType._meta.fields]
+
+
+@admin.register(CleaningRequest)
+class CleaningRequestAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in CleaningRequest._meta.fields]
 
 
 @admin.register(CleaningStatus)

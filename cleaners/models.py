@@ -6,18 +6,13 @@ from django.contrib.auth import get_user_model
 UserModel = get_user_model()
 
 
-class Cleaner(BaseModel):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
-
-
 class ScheduleChange(BaseModel):
-    cleaner = models.ForeignKey(Cleaner, on_delete=models.CASCADE)
+    cleaner = models.ForeignKey(UserModel, on_delete=models.CASCADE)
     relevant_since_date = models.DateField(blank=True, default=None)
 
 
 class Schedule(BaseModel):
-    cleaner = models.ForeignKey(Cleaner, on_delete=models.CASCADE)
+    cleaner = models.ForeignKey(UserModel, on_delete=models.CASCADE)
     schedule_change = models.ForeignKey(ScheduleChange, on_delete=models.CASCADE)
     relevant_since_date = models.DateField()
     weekday_from = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(7)])

@@ -1,0 +1,52 @@
+{% extends "base.html" %}>
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-center">Cleanings Details</div>
+                <div class="mb-3 text-end">
+                    <a href="{% url 'cleaning_request_create' %}" class="btn btn-primary">Request New</a>
+                </div>
+                <div class="table-responsive mt-3">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                        <tr>
+                            <th>Place Name</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for cleaning in cleanings %}
+                            <tr>
+                                <td>{{ cleaning.place.name }}</td>
+                                <td>{{ cleaning.scheduled_start_dt|date:"d/m/Y" }}</td>
+                                <td><a href="{% url 'cleaning' cleaning.uuid %}">View</a></td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+
+{% block js_stuff %}
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $("table").DataTable({
+                order: [],
+            })
+        })
+    </script>
+{% endblock js_stuff %}

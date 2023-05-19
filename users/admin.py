@@ -5,7 +5,12 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext, gettext_lazy as _
 
 from django.contrib import admin
-from .models import *
+from .models import Role, User
+
+
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in Role._meta.fields]
 
 
 class CustomUserAdmin(UserAdmin):
@@ -13,8 +18,8 @@ class CustomUserAdmin(UserAdmin):
     form = UserChangeForm
     model = User
 
-    list_display = ('email', 'is_staff', 'is_active', 'uuid',)
-    list_filter = ('email', 'is_staff', 'is_active',)
+    list_display = ('email', 'role', 'is_staff', 'is_active', 'uuid',)
+    list_filter = ('email', 'role', 'is_staff', 'is_active',)
     search_fields = ('email', 'first_name', 'last_name', 'uuid',)
     ordering = ('email',)
 
@@ -25,12 +30,12 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions',),
         }),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
-        # (_('Extra fields'), {'fields': ('company',)}),
+        (_('Extra fields'), {'fields': ('role',)}),
     )
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2'),
+            'fields': ('email', 'role', 'password1', 'password2'),
         }),
     )
 

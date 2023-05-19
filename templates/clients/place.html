@@ -1,0 +1,41 @@
+{% extends "base.html" %}>
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-center">Place Details</div>
+                <div class="card border-0">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-4">
+                                <ul class="list-unstyled">
+                                    <li><b>Name: </b>{{ object.name }}</li>
+                                    <li><b>Type: </b>{{ object.type.name }}</li>
+                                    <li><b>Address: </b>{{ object.name }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-4">
+                                <ul class="list-unstyled">
+                                    <li><b>Bedrooms: </b>{{ object.bedrooms_nmb }}</li>
+                                    <li><b>Bathrooms: </b>{{ object.bathrooms_nmb }}</li>
+                                    <li><b>Kitchens: </b>{{ object.kitchens_nmb }}</li>
+                                    <li><b>Other rooms: </b>{{ object.other_rooms_nmb }}</li>
+                                    <li><b>Total area: </b>{{ object.total_area_size|default_if_none:"" }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-4">
+                                <ul class="list-unstyled">
+                                    <li><b>Comments: </b>{{ object.comments|linebreaks }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <a href="{% url 'homepage' %}" class="btn btn-primary">Back</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

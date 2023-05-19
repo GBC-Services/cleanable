@@ -1,0 +1,73 @@
+{% extends "base.html" %}>
+{% load crispy_forms_tags %}
+
+{% block header_stuff %}
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/sunny/jquery-ui.min.css" integrity="sha512-bK9/5A1BwPJ8jYk16TyP4vJABe531hdsYppilDh7MFq7bZELm0QWZW7shSRAG/x5JO4LCX4YZGQM4tjRBakQkA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.14.0/jquery.timepicker.min.css" integrity="sha512-WlaNl0+Upj44uL9cq9cgIWSobsjEOD1H7GK1Ny1gmwl43sO0QAUxVpvX2x+5iQz/C60J3+bM7V07aC/CNWt/Yw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <div class="h3 text-center">Cleaning Request</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6 {% if not object %}mx-auto{% endif %}">
+                <div class="card">
+                    <div class="card-body">
+                        {% crispy form %}
+                    </div>
+                </div>
+            </div>
+            {% if object %}
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="h3">Available Cleaners</div>
+                            {% with object.get_cleaners as cleaners %}
+                                {% if not cleaners %}
+                                    <div>No cleaners available for the requested date, time interval and type of cleaning.</div>
+                                    <div>Send request to all cleaning companies in our database?</div>
+                                    <div class="text-center">
+                                        <button class="btn btn-success mt-3">Yes, Send It!</button>
+                                    </div>
+                                {% else %}
+                                    {{ cleaners }}
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock content %}
+
+{% block js_stuff %}
+    <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.0/moment.min.js" integrity="sha512-Izh34nqeeR7/nwthfeE0SI3c8uhFSnqxV0sI9TvTcXiFJkMd6fB644O64BRq2P/LA/+7eRvCw4GmLsXksyTHBg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.14.0/jquery.timepicker.min.js" integrity="sha512-s0SB4i9ezk9SRyV1Glrj/w5xS5ExSxXiN44fQeV9GYOtExbVWnC+mUsUyZdIYv6qXL0xe1qvpe0h1kk56gsgaA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        $(document).ready(function (){
+            $(".timeinput").each(function (){
+                $(this).timepicker({
+                    timeFormat: 'h:i a',
+                    step: 15,
+                    minTime: "9:00 am",
+                    maxTime: "6:00 pm",
+                });
+            })
+
+            var minDate = moment().format('MM/DD/YYYY');
+            $(".dateinput").each(function (){
+                $(this).datepicker({
+                    dateFormat: "mm/dd/yy",
+                    numberOfMonths: 1,
+                    minDate: minDate
+                });
+            })
+        })
+    </script>
+{% endblock js_stuff %}

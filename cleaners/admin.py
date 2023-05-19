@@ -1,10 +1,5 @@
 from django.contrib import admin
-from .models import Cleaner, ScheduleChange, Schedule
-
-
-@admin.register(Cleaner)
-class CleanerAdmin(admin.ModelAdmin):
-    list_display = [field.name for field in Cleaner._meta.fields]
+from .models import ScheduleChange, Schedule
 
 
 @admin.register(ScheduleChange)

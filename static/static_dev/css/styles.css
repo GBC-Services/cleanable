@@ -42,10 +42,14 @@ html, body {
 
 .content-wrapper{
     flex: 1;
-    padding-top: 100px;
     width: 100%;
 }
 
 .footer{
     /*margin-top: 30px;*/
+}
+
+.nav-item .nav-link{
+    color: #b7b5b5;
+
 }

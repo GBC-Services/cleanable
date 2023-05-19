@@ -28,7 +28,7 @@ IS_ON_TEST = env.bool("IS_ON_TEST", default=False)
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env("SECRET_KEY", default='django-insecure-s61gx1!_jrjb%79k^0^w#g4v8))9w+l!i-qh%5sseev01hj&1*')
+SECRET_KEY = env.str("SECRET_KEY", default='django-insecure-s61gx1!_jrjb%79k^0^w#g4v8))9w+l!i-qh%5sseev01hj&1*')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if IS_ON_PROD or IS_ON_TEST:
@@ -105,22 +105,22 @@ WSGI_APPLICATION = 'cleaning.wsgi.application'
 
 if IS_ON_TEST or IS_ON_PROD:
     IS_SSL_FOR_DB = env.bool("IS_SSL_FOR_DB", default=False)
-    DB_SSL_PATH = env("DB_SSL_PATH", default="")
+    DB_SSL_PATH = env.str("DB_SSL_PATH", default="")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': env("DB_NAME"),
-            'USER': env("DB_USERNAME"),
-            'PASSWORD': env("DB_PASSWORD"),
-            'HOST': env("DB_HOST"),
-            'PORT': env("DB_PORT", default="5432"),
+            'NAME': env.str("DB_NAME"),
+            'USER': env.str("DB_USERNAME"),
+            'PASSWORD': env.str("DB_PASSWORD"),
+            'HOST': env.str("DB_HOST"),
+            'PORT': env.str("DB_PORT", default="5432"),
         },
     }
 
     if IS_SSL_FOR_DB:
         DATABASES['default']['OPTIONS'] = {
             'sslmode': 'prefer',
-            'sslrootcert': env("DB_SSL_CERTIFICATE", default=DB_SSL_PATH),  # /home/ubuntu/.ssh/ca-certificate.crt
+            'sslrootcert': env.str("DB_SSL_CERTIFICATE", default=DB_SSL_PATH),  # /home/ubuntu/.ssh/ca-certificate.crt
         }
 
 else:
@@ -214,27 +214,26 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
 
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
-ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")  # none
+ACCOUNT_EMAIL_VERIFICATION = env.str("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")  # none
 ACCOUNT_LOGIN_ATTEMPTS_LIMIT = None  # this is managed by django-axes
 ACCOUNT_USER_DISPLAY = lambda user: user.email  # returns email instead of username (which is by default)
 
 if IS_ON_PROD:
-    ACCOUNT_DEFAULT_HTTP_PROTOCOL = env("ACCOUNT_DEFAULT_HTTP_PROTOCOL", default="https")
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = env.str("ACCOUNT_DEFAULT_HTTP_PROTOCOL", default="https")
 else:
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
 
 
 AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True
 AXES_FAILURE_LIMIT = env.int("AXES_FAILURE_LIMIT", default=3)
-AXES_COOLOFF_TIME = env("AXES_COOLOFF_TIME", default=3)
+AXES_COOLOFF_TIME = env.int("AXES_COOLOFF_TIME", default=3)
 AXES_RESET_ON_SUCCESS = True
 AXES_USERNAME_FORM_FIELD = 'login'  # custom django-allauth login form is adjusted accordingly
-AXES_META_PRECEDENCE_ORDER = env("AXES_META_PRECEDENCE_ORDER", default=["HTTP_X_FORWARDED_FOR"])
+AXES_META_PRECEDENCE_ORDER = env.list("AXES_META_PRECEDENCE_ORDER", default=["HTTP_X_FORWARDED_FOR"])
 
 LOGIN_REDIRECT_URL = "/"
 
-
-FROM_EMAIL = env("FROM_EMAIL", default="hello@tonythenotary.com")
+FROM_EMAIL = env.str("FROM_EMAIL", default="hello@tonythenotary.com")
 DEFAULT_FROM_EMAIL = FROM_EMAIL
 
 if IS_ON_PROD:
@@ -246,16 +245,16 @@ if not IS_SENDING_EMAILS:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_HOST = 'smtp.sendgrid.net'
-    EMAIL_HOST_USER = env("EMAIL_HOST_USER")
-    EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+    EMAIL_HOST_USER = env.str("EMAIL_HOST_USER")
+    EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD")
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
 
 
-RECAPTCHA_PUBLIC_KEY = env("RECAPTCHA_PUBLIC_KEY", default="")
-RECAPTCHA_PRIVATE_KEY = env("RECAPTCHA_PRIVATE_KEY", default="")
+RECAPTCHA_PUBLIC_KEY = env.str("RECAPTCHA_PUBLIC_KEY", default="")
+RECAPTCHA_PRIVATE_KEY = env.str("RECAPTCHA_PRIVATE_KEY", default="")
 
-IS_CAPTCHA = env("IS_CAPTCHA", default=IS_ON_PROD or IS_ON_TEST)
+IS_CAPTCHA = env.bool("IS_CAPTCHA", default=IS_ON_PROD or IS_ON_TEST)
 
 HIJACK_INSERT_BEFORE = None  # project has its own notification mechanism
 

@@ -8,6 +8,27 @@ class Company(BaseDictModel):
     logo = models.ImageField(upload_to="companies/", blank=True, null=True, default=None)
     description = models.TextField(blank=True, null=True, default=None)
 
+    def get_is_user_manager(self, user):
+        return self.companyuser_set.filter(user=user, is_active=True, is_admin=True).exists()
+
+    def get_is_user_cleaner(self, user):
+        return self.companyuser_set.filter(user=user, is_active=True, is_admin=False).exists()
+
+    def get_cleanings(self, as_cleaning_ids=False):
+        cleanings = self.cleaning_set.all()
+        if as_cleaning_ids:
+            return cleanings.values_list("id", flat=True)
+        else:
+            return cleanings
+
+    def get_assigned_user_cleanings(self, user, as_cleaning_ids=False):
+        cleaning_ids = user.get_assigned_cleanings(as_cleaning_ids=True)
+        cleanings = self.get_cleanings().filter(id__in=cleaning_ids)
+        if as_cleaning_ids:
+            return cleanings.values_list("id", flat=True)
+        else:
+            return cleanings
+
 
 class CompanyUser(BaseModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
@@ -15,21 +36,15 @@ class CompanyUser(BaseModel):
     is_admin = models.BooleanField(default=False)
 
 
-class CleaningType(BaseDictModel):
-    """It could be some specific items for a certain company"""
-    company = models.ForeignKey(Company, blank=True, null=True, default=None, on_delete=models.CASCADE)
-
-
-class RegularityType(BaseDictModel):
-    """It could be some specific items for a certain company"""
-    company = models.ForeignKey(Company, blank=True, null=True, default=None, on_delete=models.CASCADE)
-
-
 class CompanyService(BaseDictModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cleaning_type = models.ForeignKey(CleaningType, on_delete=models.CASCADE)  # classic; move out clean
-    regularity_type = models.ForeignKey(RegularityType, on_delete=models.CASCADE)
+
+    """cleaning_type: classic; move out clean"""
+    cleaning_type = models.ForeignKey("cleanings.CleaningType", blank=True, default=None,
+                                      on_delete=models.CASCADE)
+    regularity_type = models.ForeignKey("cleanings.RegularityType", blank=True, default=None,
+                                        on_delete=models.CASCADE)
     nmb_of_cleaners = models.PositiveIntegerField(default=1)
     hours_duration = models.PositiveIntegerField(default=1)
 
