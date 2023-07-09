@@ -243,10 +243,7 @@ LOGIN_REDIRECT_URL = "/"
 FROM_EMAIL = env.str("FROM_EMAIL", default="hello@cleanable.io")
 DEFAULT_FROM_EMAIL = FROM_EMAIL
 
-if IS_ON_PROD:
-    IS_SENDING_EMAILS = env.bool("IS_SENDING_EMAILS", default=True)
-else:
-    IS_SENDING_EMAILS = env.bool("IS_SENDING_EMAILS", default=False)
+IS_SENDING_EMAILS = env.bool("IS_SENDING_EMAILS", default=IS_ON_PROD)
 
 if not IS_SENDING_EMAILS:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

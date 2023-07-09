@@ -31,7 +31,10 @@ class Service(BaseDictModel):
 
     def save(self, *args, **kwargs):
         if not self.is_chore:
-            self.name = f"{self.cleaning_type}, {self.apartment_plan} ({self.regularity_type})"
+            if self.apartment_plan:
+                self.name = f"{self.cleaning_type}, {self.apartment_plan} ({self.get_regularity_type_display()})"
+            else:
+                self.name = f"{self.cleaning_type}, ({self.get_regularity_type_display()})"
         super().save(*args, **kwargs)
 
     @property

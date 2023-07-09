@@ -12,6 +12,7 @@ from .forms import PlaceForm
 from utils.mixins.access_mixins import GeneralAdminOrClientAccessMixin, ClientAccessMixin
 from utils.mixins.queryset_mixins import PlacesMixin, ClientMixin
 from users.models import User
+from django.utils.translation import gettext as _
 
 
 class ClientView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, ClientMixin,
@@ -25,8 +26,13 @@ class ClientView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, ClientMixi
         user = self.request.user
         if user.is_client:
             return user
-        else:
+        elif self.kwargs.get(self.slug_url_kwarg):
             return super().get_object(queryset)
+        else:
+            raise Http404(
+                _("No %(verbose_name)s found matching the query")
+                % {"verbose_name": self.model._meta.verbose_name}
+            )
 
 
 class PlacesView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, PlacesMixin,
