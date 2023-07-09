@@ -13,11 +13,52 @@
                         <a class="nav-link {% if 'places' in request.path %}active{% endif %}"
                            href="{% url 'places' %}">Places</a>
                     </li>
+                {% endif %}
+
+                {% if request.user.is_general_admin or request.user.is_client %}
                     <li class="nav-item">
-                        <a class="nav-link {% if 'cleanings' in request.path %}active{% endif %}"
+                        <a class="nav-link {% if 'bookings' in request.path %}active{% endif %}"
+                           href="{% url 'bookings' %}">Bookings</a>
+                    </li>
+                {% endif %}
+
+                {% if request.user.is_general_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'company-service-fees' in request.path %}active{% endif %}"
+                           href="{% url 'services' %}">Service Fees</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'companies' in request.path %}active{% endif %}"
+                           href="{% url 'companies' %}">Companies</a>
+                    </li>
+                {% endif %}
+
+                {% if request.user.is_manager %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'cleaning' in request.path %}active{% endif %}"
+                           href="{% url 'cleanings' %}">Cleanings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'cleaners' in request.path %}active{% endif %}"
+                           href="{% url 'cleaners' %}">Cleaners</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'company-service-fees' in request.path %}active{% endif %}"
+                           href="{% url 'company_service_fees' %}">Service Fees</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == "company" %}active{% endif %}"
+                           href="{% url 'company' %}">Company</a>
+                    </li>
+                {% endif %}
+
+                {% if request.user.is_cleaner %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'cleaning' in request.path %}active{% endif %}"
                            href="{% url 'cleanings' %}">Cleanings</a>
                     </li>
                 {% endif %}
+
             </ul>
             <ul class="navbar-nav ms-auto mb-2 mb-md-0">
                 {% if not request.user.is_authenticated %}
@@ -26,6 +67,10 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'account_login' %}">Log in</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'account_logout' %}">Log out</a>
                     </li>
                 {% endif %}
             </ul>

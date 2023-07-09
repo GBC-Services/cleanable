@@ -1,0 +1,35 @@
+<div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped" width="100%">
+        <thead>
+            <tr>
+                <th>Created</th>
+                <th>Region</th>
+                <th>Address</th>
+                <th>Booked For</th>
+                <th>Services</th>
+                <th>Fee, USD</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for booking in object_list %}
+            <tr>
+                <td>{{ booking.created|date:"m/d/Y H:i:s" }}</td>
+                <td>{{ booking.place.region }}</td>
+                <td>{{ booking.place.address }}</td>
+                <td>{{ booking.get_scheduled_dt_range }}</td>
+                <td>{{ booking.get_service_names_as_string }}</td>
+                <td>{{ booking.total_fee_final }}</td>
+                <td>{{ booking.get_status_display }}</td>
+                <td>
+                    {% if booking.status == booking.STATUS_NEW %}
+                        <a href="{% url 'booking' booking.uuid %}">Assign</a>
+                    {% endif %}
+                    <a href="{% url 'booking' booking.uuid %}">View</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

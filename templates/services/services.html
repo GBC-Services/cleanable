@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load general %}
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-center">Service Fees</div>
+                <div class="mt-3">
+                    {% crispy form %}
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="card">
+                    <div class="card-header text-white bg-secondary h3 text-center">Changes History</div>
+                    <div class="card-body">
+                        {% with region.get_fees_snapshots as snapshots %}
+                            {% if not snapshots %}
+                                No snapshots
+                            {% else %}
+                                <ul class="list-group list-group-flush">
+                                    {% for region_snapshot in snapshots %}
+                                        <li class="list-group-item {% if region_snapshot.uuid == snapshot.uuid %}active{% endif %}"
+                                            {% if region_snapshot.uuid == snapshot.uuid %}aria-current="true"{% endif %}>
+                                            <a href="{{ region_snapshot.get_url }}">{{ region_snapshot.created }}</a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-9">
+                <div class="card">
+                    <div class="card-header text-white bg-primary h3 text-center">Region Service Fees</div>
+                    <div class="card-body">
+                        {% if region %}
+                            <div class="text-end">
+                                <a href="{{ snapshot.get_send_to_company_url }}" class="btn btn-success">Send to Subcontractor</a>
+                            </div>
+                        {% endif %}
+                        <form method="post" action="{% url 'service_fees_snapshot_creation' %}">{% csrf_token %}
+                            <input class="d-none" name="region" value="{{ region.uuid }}">
+                            {% include "services/partials/service_fees_table.html" %}
+                            {% if region %}
+                                <div class="mt-3 text-center">
+                                    <button type="submit" id="fees_save_btn" class="btn btn-primary">Save</button>
+                                </div>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block js_stuff %}
+    <script src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="//cdn.datatables.net/plug-ins/1.13.4/sorting/currency.js"></script>
+    <script>
+        $(document).ready(function(){
+            $("table").DataTable({
+                order: [],
+                columnDefs: [
+                    { type: 'currency', targets: 4 , orderable: false}
+                ],
+                paging: false,
+                dom: "ft"
+            })
+
+            $("#id_region").on("change", function (){
+                $(this).closest("form").submit();
+            })
+        })
+    </script>
+{% endblock js_stuff %}

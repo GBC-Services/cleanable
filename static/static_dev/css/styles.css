@@ -53,3 +53,80 @@ html, body {
     color: #b7b5b5;
 
 }
+
+div.dataTables_wrapper div.dataTables_filter{
+    margin-bottom: 0.5em;
+}
+
+.list-group-item.active a{
+    color: white;
+}
+
+.va-center thead th{
+    vertical-align: middle;
+}
+
+.schedule-navigation a{
+    cursor: pointer;
+}
+
+.cleanings-table tr th,
+.cleanings-table tr td{
+    vertical-align: middle;
+}
+
+.messages-container{
+    height: 200px;
+    overflow-y: auto;
+}
+
+.minimap-container{
+    height: 200px;
+    margin-bottom: 50px !important;
+}
+
+.services-selection-card{
+    width: 100%;
+    margin: 45px 0px 0px;
+    background: #140e2f;
+    border-radius: 24px;
+    color: white;
+}
+
+.total-amount-card, .service-price-card{
+    width: 100%;
+    padding: 14px 30px;
+    max-height: fit-content;
+    background: #241c4e;
+    border-radius: 12px;
+    color: white;
+}
+
+.total-amount-label{
+    margin-top: 0;
+    margin-bottom: 0.5em;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.75);
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+}
+
+.total-amount{
+    font-style: normal;
+    font-weight: bold;
+    font-size: 40px;
+    line-height: 46px;
+    color: #ffffff;
+    margin: 0px;
+
+}
+
+.table-service-prices{
+    color: white;
+}
+
+.table-service-prices th{
+    text-transform: uppercase;
+}

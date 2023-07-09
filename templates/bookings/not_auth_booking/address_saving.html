@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block header_stuff %}
+{% endblock header_stuff %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-12">
+            <div>
+                {% crispy form %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block js_stuff %}
+    {% if step3 %}{% include "clients/partials/mapbox_address_js.html" %}{% endif %}
+{% endblock js_stuff %}

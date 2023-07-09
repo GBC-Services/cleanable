@@ -1,0 +1,43 @@
+<div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped" width="100%">
+        <thead>
+        <tr>
+            <td>Created</td>
+            <th>Place</th>
+            <th>Booked For</th>
+            <th>Services</th>
+            <th>Fee, USD</th>
+            <th>Status</th>
+            <th>Payment</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for booking in object_list %}
+            <tr>
+                <td>{{ booking.created|date:"m/d/Y H:i:s" }}</td>
+                <td><b>{{ booking.place.name }}:</b> {{ booking.place.address }}</td>
+                <td>{{ booking.get_scheduled_dt_range }}</td>
+                <td>{{ booking.get_service_names_as_string }}</td>
+                <td>{{ booking.total_fee_final }}</td>
+                <td>{{ booking.get_status_display }}</td>
+                <th>{% if not booking.is_paid %}
+                        <a href="{% url 'checkout' booking.uuid %}" class="btn btn-primary">Pay</a>
+                    {% else %}
+                        Paid
+                        <a href="{% url 'stripe_receipt' booking.uuid %}">
+                            <i class="fa fa-file" aria-hidden="true"></i>
+                        </a>
+                    {% endif %}
+                </th>
+                <td>
+                    {% if booking.status == booking.STATUS_NEW %}
+                        <a href="{% url 'booking_update' booking.uuid %}">Update</a>
+                    {% endif %}
+                    <a href="{% url 'booking' booking.uuid %}">View</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

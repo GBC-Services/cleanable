@@ -50,12 +50,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'bookings',
     'cleaners',
     'cleanings',
     'clients',
     'companies',
+    'locations',
+    'notifications',
+    'services',
     'subscriptions',
     'users',
+    'utils',
 
     # packages
     'allauth',
@@ -64,6 +69,7 @@ INSTALLED_APPS = [
     'axes',
     'crispy_forms',
     'crispy_bootstrap5',
+    'captcha',
 ]
 
 MIDDLEWARE = [
@@ -122,7 +128,6 @@ if IS_ON_TEST or IS_ON_PROD:
             'sslmode': 'prefer',
             'sslrootcert': env.str("DB_SSL_CERTIFICATE", default=DB_SSL_PATH),  # /home/ubuntu/.ssh/ca-certificate.crt
         }
-
 else:
     DATABASES = {
         'default': {
@@ -215,6 +220,8 @@ ACCOUNT_USERNAME_REQUIRED = False
 
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_EMAIL_VERIFICATION = env.str("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")  # none
+# print(ACCOUNT_EMAIL_VERIFICATION)
+
 ACCOUNT_LOGIN_ATTEMPTS_LIMIT = None  # this is managed by django-axes
 ACCOUNT_USER_DISPLAY = lambda user: user.email  # returns email instead of username (which is by default)
 
@@ -233,7 +240,7 @@ AXES_META_PRECEDENCE_ORDER = env.list("AXES_META_PRECEDENCE_ORDER", default=["HT
 
 LOGIN_REDIRECT_URL = "/"
 
-FROM_EMAIL = env.str("FROM_EMAIL", default="hello@tonythenotary.com")
+FROM_EMAIL = env.str("FROM_EMAIL", default="hello@cleanable.io")
 DEFAULT_FROM_EMAIL = FROM_EMAIL
 
 if IS_ON_PROD:
@@ -250,44 +257,20 @@ else:
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
 
-
+IS_CAPTCHA = env.bool("IS_CAPTCHA", default=IS_ON_PROD or IS_ON_TEST)
 RECAPTCHA_PUBLIC_KEY = env.str("RECAPTCHA_PUBLIC_KEY", default="")
 RECAPTCHA_PRIVATE_KEY = env.str("RECAPTCHA_PRIVATE_KEY", default="")
 
-IS_CAPTCHA = env.bool("IS_CAPTCHA", default=IS_ON_PROD or IS_ON_TEST)
-
 HIJACK_INSERT_BEFORE = None  # project has its own notification mechanism
+ONE_TIME_REGULARITY_NAME = env.str("ONE_TIME_REGULARITY_NAME", default="One time")
+DEFAULT_PROFIT_RATE = env.float("DEFAULT_PROFIT_RATE", default=30)
+
+# for schedule
+TIME_SLOTS = env.list("TIME_SLOTS", default=["8:00-13:00", "13:00-18:00"])
+
+MAPBOX_TOKEN = env.str("MAPBOX_TOKEN", default="")
+
+STRIPE_API_KEY = env.str("STRIPE_API_KEY", default="")
 
 if IS_ON_PROD:
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': True,
-        'formatters': {
-            'verbose': {
-                'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
-            },
-        },
-        'handlers': {
-            'console': {
-                'level': 'NOTSET',
-                'class': 'logging.StreamHandler',
-                'formatter': 'verbose'
-            },
-            'console1': {
-                'level': 'INFO',
-                'class': 'logging.StreamHandler',
-                'formatter': 'verbose'
-            }
-        },
-        'loggers': {
-            '': {
-                'handlers': ['console'],
-                'level': 'NOTSET',
-            },
-            'django.request': {
-                'handlers': ['console1'],
-                'propagate': False,
-                'level': 'INFO'
-            }
-        }
-    }
+    from . import logging_settings

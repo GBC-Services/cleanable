@@ -1,0 +1,41 @@
+<div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped va-center">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Regularity</th>
+            <th>Is chore</th>
+            <th>Fee for Client, USD</th>
+            <th>Fee for Subcontractor, USD</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% with snapshot.get_fees_dict_for_table as fees_dict %}
+            {% for item in service_fees %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.cleaning_type.name }}</td>
+                    <td>{{ item.regularity_type.name }}</td>
+                    <td>{{ item.is_chore }}</td>
+                    {% with fees_dict|get_item:item.uuid|get_fee:"client_fee" as client_fee %}
+                    <td width="100px">
+                            <input name="client_fee||{{ item.uuid }}" class="form-control fees-input client-fee"
+                                   type="number" min="0" step="0.01"
+                                   value={{ client_fee }}>
+                    </td>
+                    <td width="100px">
+                        {% with fees_dict|get_item:item.uuid|get_fee:"subcontractor_fee" as fee %}
+                            <input name="subcontractor_fee||{{ item.uuid }}" class="form-control fees-input subcontractor-fee"
+                                    data-client-fee={{ client_fee }}
+                                   type="number" min="0" step="0.01"
+                                   value={{ fee }}>
+                        {% endwith %}
+                    </td>
+                    {% endwith %}
+                </tr>
+            {% endfor %}
+        {% endwith %}
+        </tbody>
+    </table>
+</div>

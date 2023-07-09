@@ -1,17 +1,17 @@
-{% extends "base.html" %}>
+{% extends "base.html" %}
 {% load crispy_forms_tags %}
+
+{% block header_stuff %}
+{% endblock header_stuff %}
+
 
 {% block content %}
     <div class="container">
-        <div class="row">
-            <div class="col-lg-6 mx-auto">
-                <div class="h3 text-center">Place {% if object %}Update{% else %}Create{% endif %}</div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-lg-6 mx-auto">
+        <div class="row mt-5">
+            <div class="col-lg-5 mx-auto">
                 <div class="card">
                     <div class="card-body">
+                        <div class="h3 text-center">Place {% if object %}Update{% else %}Create{% endif %}</div>
                         {% crispy form %}
                     </div>
                 </div>
@@ -19,3 +19,7 @@
         </div>
     </div>
 {% endblock content %}
+
+{% block js_stuff %}
+    {% include "clients/partials/mapbox_address_js.html" %}
+{% endblock js_stuff %}

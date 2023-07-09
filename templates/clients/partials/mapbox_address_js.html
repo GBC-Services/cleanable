@@ -1,0 +1,79 @@
+<script id="mapbox-search-web" defer="" src="//api.mapbox.com/search-js/v1.0.0-beta.16/web.js"></script>
+<script>
+    let autofillCollection;
+    function setValidationText(color, msg, clear = false) {
+        validatation_el = $("#validation_msg");
+        if (clear){
+            validatation_el.addClass("d-none");
+        }
+        validatation_el.removeClass("color-green", "color-red");
+        validatation_el.addClass(`color-${color}`);
+        validatation_el.text(msg);
+        validatation_el.removeClass("d-none");
+    }
+
+    // Autofill initialization
+    $("#mapbox-search-web").on("load", function () {
+        mapboxsearch.config.accessToken = "{{ mapbox_token }}";
+        autofillCollection = mapboxsearch.autofill({
+            options: { country: 'us' }
+        });
+
+        $("[name='address address-search']").attr("name", "address");
+
+        const minimap = new MapboxAddressMinimap();
+
+        minimap.canAdjustMarker = true;
+        minimap.satelliteToggle = true;
+        minimap.footer = false;
+
+        $("#minimap_container").html(minimap);
+        window.minimap = minimap;
+
+        feature = $("#id_feature").val();
+        if(feature){
+            window.minimap.feature = JSON.parse(feature);
+            $("#minimap_container").removeClass("d-none");
+        }
+        minimap.onSaveMarkerLocation = (coordinates) => {
+            coordinates = coordinates;
+            feature = $("#id_feature").val();
+            if(feature){
+                feature = JSON.parse(feature);
+                feature.geometry.coordinates = coordinates;
+                $("#id_feature").val(JSON.stringify(feature));
+            }
+        };
+
+        autofillCollection.addEventListener(
+            "retrieve",
+            async (e) => {
+                feature = e.detail.features[0];
+                $("#id_feature").val(JSON.stringify(feature));
+                window.minimap.feature = feature;
+                $("#minimap_container").removeClass("d-none");
+            }
+        );
+    })
+
+    $("form [type='submit']").on("click", async function(e){
+        e.preventDefault();
+        form = $(this).closest("form");
+        js_form = form[0];
+        result = await mapboxsearch.confirmAddress(js_form, {
+            minimap: true,
+            skipConfirmModal: (feature) =>
+                ['exact', 'high'].includes(
+                    feature.properties.match_code.confidence
+                )
+        });
+
+        if (result.type === 'nochange'){
+            form.submit();
+        }else{
+            feature = result.feature;
+            $("#id_feature").val(JSON.stringify(feature));
+            form.submit();
+        }
+    });
+</script>

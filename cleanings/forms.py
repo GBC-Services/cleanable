@@ -3,53 +3,12 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Field, Submit, HTML, Div, Row, Column
 from crispy_bootstrap5.bootstrap5 import FloatingField
 from crispy_forms.bootstrap import FormActions
-from .models import CleaningRequest, Cleaning
+from .models import Booking, Cleaning
 from clients.models import Place
 import datetime
-from .mixins import CleaningMixin
 
 
-class CleaningRequestForm(CleaningMixin, forms.ModelForm):
-    """Displayed to the client"""
-    date = forms.DateField(input_formats=["%m/%d/%Y"], widget=forms.DateInput(format="%m/%d/%Y"))
-    time_from = forms.TimeField(input_formats=["%I:%M %p"])
-    time_to = forms.TimeField(input_formats=["%I:%M %p"])
-
-    class Meta:
-        model = CleaningRequest
-        fields = ["place", "cleaning_type", "regularity_type", "comments"]  # "scheduled_start_dt", "scheduled_end_dt",
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["comments"].widget.attrs["rows"] = 3
-        self.helper = FormHelper(self)
-        self.helper.layout = Layout(
-            Field("place"),
-            Field("cleaning_type"),
-            Field("regularity_type"),
-            Field("date"),
-            Field("time_from"),
-            Field("time_to"),
-            Field("comments"),
-            Row(
-                Submit('submit', 'Submit', css_class="btn btn-primary btn-block text-uppercase")
-            )
-        )
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        cleaned_data = self.cleaned_data
-        date = cleaned_data.get("date")
-        time_from = cleaned_data.get("time_from")
-        time_to = cleaned_data.get("time_to")
-        instance.scheduled_start_dt = datetime.datetime.combine(date, time_from)
-        instance.scheduled_end_dt = datetime.datetime.combine(date, time_to)
-        if commit:
-            instance.save()
-        return instance
-
-
-class ClientCleaningForm(CleaningMixin, forms.ModelForm):
+class ClientCleaningForm(forms.ModelForm):
 
     class Meta:
         model = Cleaning
@@ -83,3 +42,92 @@ class ManagerCleaningForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["manager_comments"].widget.attrs["rows"] = 3
         self.helper = FormHelper(self)
+
+
+class CleanerAssignForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        company = kwargs.pop("company")
+        date = kwargs.pop("date")
+        super().__init__(*args, **kwargs)
+        self.fields["cleaner"] = forms.ChoiceField(choices=self.get_cleaner_choices(company, date), label=False)
+        self.helper = FormHelper(self)
+        self.helper.form_method = "POST"
+        self.helper.form_class = "cleaner-assign-form"
+        self.helper.layout = Layout(
+            Div(
+                Div(
+                    Field("cleaner", template="cleanings/partials/no_bottom_margin_field.html"),
+                    css_class="flex-fill w-100"
+                ),
+                HTML("<button class='btn btn-primary flex-fill ms-3'>Assign</button"),
+                css_class="d-flex justify-content-start"
+            )
+        )
+
+    def get_cleaner_choices(self, company, date):
+        cleaner_choices = [(None, "Not Selected")]
+        cleaners = company.get_cleaners()
+        for cleaner in cleaners.iterator():
+            is_available = cleaner.get_availability_for_date(date)
+            if is_available:
+                cleaner_choices.append((cleaner.uuid, cleaner.get_full_name()))
+        return cleaner_choices
+
+
+class CleaningsFilterForm(forms.Form):
+    date = forms.DateField(required=False, label=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = "Get"
+        self.helper.layout = Layout(
+            Div(
+                Div(
+                    Field("date", template="cleanings/partials/no_bottom_margin_field.html", placeholder="Filter by Date"),
+                    css_class="flex-fill w-100"
+                ),
+                HTML("<button type='submit' class='btn btn-primary ms-3'>Apply</button"),
+                css_class="d-flex"
+            )
+        )
+
+
+class CleaningIssueForm(forms.ModelForm):
+
+    class Meta:
+        model = Cleaning
+        fields = ["cleaner_comments"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["cleaner_comments"].widget.attrs["rows"] = 5
+        self.fields["cleaner_comments"].label = "Your comments"
+        self.helper = FormHelper(self)
+
+        self.helper.layout.append(
+            Div(
+                Submit('submit', 'Submit', css_class="btn btn-primary btn-block text-uppercase"),
+                css_class='text-center'
+            )
+        )
+
+
+class MessageForm(forms.Form):
+    message = forms.CharField(widget=forms.Textarea(attrs=dict(rows=2)), label=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_id = "chat_message_form"
+        self.helper.layout = Layout(
+            Div(
+                Div(
+                    Field("message", template="cleanings/partials/no_bottom_margin_field.html", placeholder="Write your message here"),
+                    css_class="flex-fill w-100"
+                ),
+                Submit('submit', 'Send', css_class="btn btn-primary btn-block text-uppercase"),
+                css_class="d-flex"
+            )
+        )

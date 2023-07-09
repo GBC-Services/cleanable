@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block header_stuff %}
+    <style>
+        #mock-up-autofill{
+            padding: 0px;
+            max-width: 816px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #mock-up-autofill-body input{
+            max-width: 420px;
+            width: 100%;
+        }
+        #mock-up-autofill-body input::placeholder{
+            color: #8B96AA;
+        }
+        #mock-up-autofill-header{
+            padding-top: 12px;
+            padding-bottom: 12px;
+            padding-left: 21px;
+            padding-right: 12px;
+        }
+        #mock-up-autofill-item-left{
+            margin-left: 19px;
+            margin-right: 9px;
+        }
+        #mock-up-autofill-body{
+            padding: 60px;
+        }
+        #section-demo{
+            padding-top: 120px;
+            padding-bottom: 40px;
+        }
+        #mockup-autofill-grid{
+            -ms-grid-columns: 1.25fr .75fr;
+            grid-template-columns: 1.25fr .75fr;
+            width: 100%;
+        }
+        #manual-entry{
+            cursor: pointer;
+        }
+        .btn {
+            display: inline-block;
+            font-weight: 500;
+            background-color: #0f71fa;
+            font-size: 16px;
+            color: #fff;
+            line-height: 24px;
+            padding: 9px 20px;
+            text-align: center;
+            border-radius: 4px!important;
+            transition: background-color .125s,border-color .125s,color .125s;
+        }
+        .btn.is-active, .btn:hover {
+            background-color: #0b428e;
+        }
+        .btn--gray-light {
+            background-color: #c7cacc;
+        }
+        .btn--gray-light.is-active, .btn--gray-light:hover {
+            background-color: #757d82;
+        }
+        .submit-btns {
+            padding-top: 0px;
+        }
+
+        .minimap-container{
+            height: 300px;
+            max-height: 342px;
+        }
+
+        .hide {
+            display: none;
+        }
+
+        @media screen and (max-width: 600px) {
+            #mockup-autofill-grid{
+                -ms-grid-columns: 1fr;
+                grid-template-columns: 1fr;
+                width: 100%;
+            }
+            #mock-up-autofill-body{
+                padding: 20px;
+            }
+            .minimap-container{
+                max-height: 310px;
+            }
+            .submit-btns{
+                padding-top: 90px;
+            }
+        }
+    </style>
+{% endblock header_stuff %}
+
+
+{% block content %}
+    <div class="container">
+        <div class="row mt-5">
+            <div class="col-lg-5 mx-auto">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="h3 text-center">Place {% if object %}Update{% else %}Create{% endif %}</div>
+                        {% crispy form %}
+
+                        <div id="mapbox_address_wrapper" class="mt-3">
+                            <form id="address-search" class="flex direction-vertical align-start">
+                                <div id="mockup-autofill-grid" class="grid grid--gut24 mb60">
+                                    <div class="col col--auto-mm w-full">
+                                        <!-- Input form -->
+
+                                        <label class="txt-s txt-bold color-gray mb3">Address</label>
+                                        <input
+                                                class="input mb-20"
+                                                placeholder="Start typing an address, e.g. 123 Main..."
+                                                autocomplete="address-line1"
+                                                id="mapbox-autofill"
+                                        />
+                                        <div
+                                                id="manual-entry"
+                                                class="link with-arrow"
+                                        >
+                                            Enter an address manually <span class="arrow small">›</span>
+                                        </div>
+                                        <div class="secondary-inputs hide">
+                                            <label class="txt-s txt-bold color-gray mb3">Address Line 2</label>
+                                            <input
+                                                    class="input mb-20"
+                                                    placeholder="Apt / Suite / Bldg / Unit"
+                                                    autocomplete="address-line2"
+                                            />
+                                            <label class="txt-s txt-bold color-gray mb3">City</label>
+                                            <input
+                                                    class="input mb-20"
+                                                    placeholder="City"
+                                                    autocomplete="address-level2"
+                                            />
+
+                                            <div>
+                                                <label class="txt-s txt-bold color-gray mb3"
+                                                >State / Province / Region</label
+                                                >
+                                                <input
+                                                        class="input mb-20"
+                                                        placeholder="State / Province / Region"
+                                                        autocomplete="address-level1"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="txt-s txt-bold color-gray mb3"
+                                                >Postcode</label
+                                                >
+                                                <input
+                                                        class="input"
+                                                        placeholder="Postcode"
+                                                        autocomplete="postal-code"
+                                                />
+                                            </div>
+
+                                            <label class="txt-s txt-bold color-gray mb3">Country</label>
+                                            <input class="input" placeholder="Country" autocomplete="country-name">
+                                        </div>
+                                    </div>
+                                    <div class="col col--auto-mm">
+                                        <!-- Visual confirmation map -->
+                                        <div
+                                                id="minimap_container"
+                                                class="minimap-container d-none"
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                <!-- Form buttons -->
+                                <div class="mb30 submit-btns hide">
+                                    <button type="submit" class="btn round" id="btn-confirm">
+                                        Confirm
+                                    </button>
+                                    <button type="button" class="btn round btn--gray-light" id="btn-reset">
+                                        Reset
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div id="validation-msg" class="mt24 txt-m txt-bold none"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block js_stuff %}
+    <script id="mapbox-search-web" defer="" src="//api.mapbox.com/search-js/v1.0.0-beta.16/web.js"></script>
+    <script>
+        let autofillCollection;
+        // Form operation functions
+        function showMap() {
+            const el = document.getElementById("minimap_container");
+            el.classList.remove("d-none");
+        }
+        function hideMap() {
+            const el = document.getElementById("minimap_container");
+            el.classList.add("d-none");
+        }
+        function expandForm() {
+            document.getElementById("manual-entry").classList.add("hide");
+            document.querySelector(".secondary-inputs").classList.remove("hide");
+            document.querySelector(".submit-btns").classList.remove("hide");
+        }
+        function collapseForm() {
+            document.getElementById("manual-entry").classList.remove("hide");
+            document.querySelector(".secondary-inputs").classList.add("hide");
+            document.querySelector(".submit-btns").classList.add("hide");
+        }
+        function setValidationText(color, msg, clear = false) {
+            const validationTextElement = document.getElementById("validation-msg");
+            if (clear) validationTextElement.classList.add("none");
+            validationTextElement.classList.remove("color-green", "color-red");
+            validationTextElement.classList.add(`color-${color}`);
+            validationTextElement.innerText = msg;
+            validationTextElement.classList.remove("none");
+        }
+        function submitForm() {
+            setValidationText("green", "Order successfully submitted.");
+            setTimeout(() => {
+                resetForm();
+            }, 2500);
+        }
+        function resetForm() {
+            const inputs = document.querySelectorAll("input");
+            inputs.forEach(input => input.value = "");
+            collapseForm();
+            setValidationText("green", "", true)
+            autofillCollection.update();
+            window.minimap.feature = null;
+        }
+
+        // Bind functions to HTML buttons
+        document
+            .getElementById("manual-entry")
+            .addEventListener("click", expandForm);
+        document.getElementById("btn-reset").addEventListener("click", resetForm);
+
+        // Autofill initialization
+        document.getElementById("mapbox-search-web").onload = () => {
+            mapboxsearch.config.accessToken = "{{ mapbox_token }}";
+
+            autofillCollection = mapboxsearch.autofill({});
+
+            const minimap = new MapboxAddressMinimap();
+            minimap.canAdjustMarker = true;
+            minimap.satelliteToggle = true;
+            const minimapContainer = document.getElementById("minimap_container");
+            minimapContainer.appendChild(minimap);
+            window.minimap = minimap;
+
+            autofillCollection.addEventListener(
+                "retrieve",
+                async (e) => {
+                    expandForm();
+                    if (window.minimap) {
+                        window.minimap.feature = e.detail.features[0];
+                        showMap();
+                    }
+                }
+            );
+
+            // Add confirmation prompt to shipping address
+            const form = document.querySelector("form");
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const result = await mapboxsearch.confirmAddress(form, {
+                    minimap: true,
+                    skipConfirmModal: (feature) =>
+                        ['exact', 'high'].includes(
+                            feature.properties.match_code.confidence
+                        )
+                });
+                if (result.type === 'nochange') submitForm();
+            });
+        }
+    </script>
+{% endblock js_stuff %}

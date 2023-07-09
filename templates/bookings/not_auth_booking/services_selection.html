@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block header_stuff %}
+    {% include "partials/select2_css.html" %}
+{% endblock header_stuff %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="h3 text-center"><b>Zip Code:</b> {{ request.GET.zip_code }}</div>
+
+            <div class="card services-selection-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            {% crispy form %}
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card total-amount-card mb-3">
+                                <div class="card-body">
+                                    <div class="total-amount-label">
+                                        Total Cost
+                                    </div>
+                                    <div class="total-amount">$<span id="total_amount">0</span></div>
+                                </div>
+                            </div>
+                            <div class="card service-price-card">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-service-prices" width="100%">
+                                            <thead>
+                                                <tr>
+                                                    <th>Add-on</th>
+                                                    <th>Fee</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for service_fee in extra_service_fees %}
+                                                    <tr>
+                                                        <td>{{ service_fee.service.name }}</td>
+                                                        <td>${{ service_fee.client_fee }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block js_stuff %}
+    {% include "partials/select2_js.html" %}
+    <script>
+        $(document).ready(function (){
+            $("#id_base_service").select2({theme: 'bootstrap-5'});
+            $("#id_place_type").on("change", function (){
+                displayAreaSize()
+            })
+
+            function displayAreaSize(){
+                val = $("#id_place_type").val();
+                if(val == "10"){
+                    $("#area_size_wrapper").addClass("d-none");
+                }else if(val == "20"){
+                    $("#area_size_wrapper").removeClass("d-none");
+                }
+            }
+
+            displayAreaSize();
+
+            function calculateTotalFees(){
+                total_fee = 0;
+                $("#total_amount").text(total_fee);
+
+                selected_service = $(document).find("#id_base_service option:selected");
+                if(selected_service.val()){
+                    selected_service_fee = parseFloat(selected_service.attr("data-fee"));
+
+                    if(selected_service.attr("data-is-area-based-fee") == "true"){
+                        area_size = $("#id_area_size").val() ? $("#id_area_size").val() : 0;
+                        total_fee += (selected_service_fee * area_size);
+                    }else{
+                        total_fee += selected_service_fee;
+                    }
+
+                    $("#extra_services option:selected").each(function (){
+                        if($(this).val() == "Yes"){
+                            select = $(this).closest("select");
+                            total_fee += parseFloat(select.attr("data-fee"));
+                        }
+                    })
+                    $("#total_amount").text(total_fee);
+                }
+            }
+
+            calculateTotalFees();
+
+            $(document).on("change", "#id_area_size, select", function (){
+                calculateTotalFees();
+            });
+
+            function getBaseServices(){
+                place_type = $("#id_place_type").val();
+                if(place_type == "10"){
+                    $("#id_area_size").removeClass("d-none");
+                }
+                data = {
+                    "csrfmiddlewaretoken": $("#csrf_getting_form [name='csrfmiddlewaretoken']").val(),
+                    "zip_code": {{ request.GET.zip_code }},
+                    "place_type": place_type
+                }
+                url = "{% url 'services_for_property_type' %}";
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    data: data,
+                    success: function (response) {
+                        $("#id_base_service").html("<option value=''>---------</option>")
+                        base_services = response.base_services
+                        $.each(base_services, function(){
+                            $("#id_base_service").append("<option value='"+this.id+"' " +
+                                "data-fee='"+this.fee+"' data-is-area-based-fee='"+this.is_area_based_fee+"'>"+this.name+"</option>")
+                        })
+                        $("#id_base_service").select2({theme: 'bootstrap-5'}).trigger("change");
+                    },
+                    error: function (response){
+                    }
+                })
+            }
+
+            getBaseServices()
+
+            $("#id_place_type").on("change", function(){
+                getBaseServices();
+            })
+
+        })
+    </script>
+{% endblock js_stuff %}

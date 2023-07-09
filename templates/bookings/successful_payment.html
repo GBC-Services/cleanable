@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block header_stuff %}
+{% endblock header_stuff %}
+
+{% block content %}
+<div class="container">
+    <div class="row mt-5">
+        <div class="col-lg-6 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    {% if object.is_paid %}
+                        <div class="h3 text-center">
+                            Thank you!<br>
+                            Your payment was successful!
+                        </div>
+                        <div class="mt-3 text-center">
+                            {% if request.user.is_authenticated %}
+                                View your invoice by this <a href="{% url 'stripe_receipt' object.uuid %}">link</a>.
+                            {% else %}
+                                To track all order details and communication
+                                <div class="mt-3">
+                                    <a href="{% url 'account_signup' %}?email={{ object.get_encoded_stripe_email }}" class="btn btn-primary">Sign Up</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="h3 text-center">
+                            This invoice is not paid. <br>
+                            Go back to checkout page by this <a href="
+                            {% if request.user.is_authenticated %}{% url 'checkout' object.uuid %}
+                                {% else %}
+                                    {% url 'public_booking_step_3' %}
+                                {% endif %}">
+                                link</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

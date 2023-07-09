@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block header_stuff %}
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-start">
+                    Manage Schedule
+                </div>
+                <div class="h5">Period: {{ period.date_start|date:"m/d/Y" }}-{{ period.date_end|date:"m/d/Y" }}</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12">
+                <form method="post">{% csrf_token %}
+                    {% include "cleaners/partials/schedule_table.html" %}
+                    <div class="mt-3 text-center">
+                        <button onclick="history.back()" class="btn btn-secondary me-1">Back</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block js_stuff %}
+{% endblock js_stuff %}

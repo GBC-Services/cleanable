@@ -1,0 +1,104 @@
+<div class="h3 text-center">Booking Details</div>
+<div class="card mb-3">
+    <div class="card-body">
+        <div>
+            <div class="alert {{ object.get_status_notification_class }}">
+                <b>Status:</b> {{ object.get_status_display }}
+            </div>
+            {% if object.status >= object.STATUS_IN_WORK %}
+                {% with object.get_last_cleaning as cleaning %}
+                    {% with cleaning.status as cleaning_status %}
+                        {% if cleaning_status >= 30 or cleaning_status <= 60 %}
+                            <div class="mt-3 mb-3">
+                                <div>
+                                    <ul class="list-unstyled">
+                                        <li><b>Cleaning Status:</b> {{ cleaning.get_status_display }}</li>
+                                        <li><b>Cleaner:</b> {{ cleaning.get_cleaners_as_text }}</li>
+                                        {% if cleaning.real_start_dt %}
+                                            <li><b>Start:</b> {{ cleaning.real_start_dt|date:"m/d/Y h:i:s" }}</li>
+                                        {% endif %}
+                                        {% if cleaning.real_end_dt %}
+                                            <li><b>Finish:</b> {{ cleaning.real_end_dt|date:"m/d/Y h:i:s"}}</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+
+
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                {% endwith %}
+            {% endif %}
+            {% if object.user == request.user %}
+                {% if object.status == object.STATUS_NEW %}
+                    <div class="mt-3 mb-3">
+                        <b>Note: You can update your booking until this status is not changed to "In work"</b>
+                    </div>
+                {% elif object.status == object.STATUS_IN_WORK %}
+                    <div>We have confirmed your booking!</div>
+                    {% with object.get_cleaners as cleaners %}
+                        {% if cleaners %}
+                            <div class="h3">Cleaner{% if cleaners|length > 1 %}s{% endif %}:</div>
+                            {% for cleaner in cleaners %}
+                                <div class="card">
+                                    <div class="card-body">
+                                        {{ cleaner.first_name }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                {% endif %}
+            {% endif %}
+        </div>
+        <div>
+            <ul class="list-unstyled">
+                <li><b>Created: </b>{{ object.created|date:"m/d/Y" }}</li>
+                <li><b>Cleaning time: </b> {{ object.get_scheduled_dt_range }}</li>
+                <li><b>Place: </b>{{ object.place }}, {{ object.place.address }}</li>
+                <li class="mt-3"><b>Comments: </b>{{ object.comments|linebreaks }}</li>
+            </ul>
+
+            <div class="mt-3 table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Fee, USD</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for booked_service in object.get_booking_services %}
+                        <tr>
+                            <td>{{ booked_service.service.name }}</td>
+                            <td>{{ booked_service.fee }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% if object.discount_code %}
+                        <tr>
+                            <td>Initial Fees</td>
+                            <td>{{ object.total_fee }}</td>
+                        </tr>
+                        <tr>
+                            <td>Discount</td>
+                            <td>{{ object.discount }}, ({{ object.discount_code|default_if_none:"no code" }})</td>
+                        </tr>
+                    {% endif %}
+                    <tr>
+                        <td>Total Fee</td>
+                        <td>{{ object.total_fee_final }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+        <div class="text-center mt-3">
+            <button onclick="history.back()" class="btn btn-secondary">Back</button>
+
+            {% if object.user == request.user %}
+                <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary">Update</a>
+            {% endif %}
+        </div>
+    </div>
+</div>

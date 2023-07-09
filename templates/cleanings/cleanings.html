@@ -1,52 +1,46 @@
-{% extends "base.html" %}>
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
 
 {% block header_stuff %}
     <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
     <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/sunny/jquery-ui.min.css" integrity="sha512-bK9/5A1BwPJ8jYk16TyP4vJABe531hdsYppilDh7MFq7bZELm0QWZW7shSRAG/x5JO4LCX4YZGQM4tjRBakQkA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 {% endblock header_stuff %}
 
 {% block content %}
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
-                <div class="h3 text-center">Cleanings Details</div>
-                <div class="mb-3 text-end">
-                    <a href="{% url 'cleaning_request_create' %}" class="btn btn-primary">Request New</a>
+                <div class="h3 text-center">Cleanings</div>
+                <div class="row">
+                    <div class="col-lg-3 mx-auto text-center">
+                        {% crispy form %}
+                    </div>
                 </div>
-                <div class="table-responsive mt-3">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                        <tr>
-                            <th>Place Name</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th></th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for cleaning in cleanings %}
-                            <tr>
-                                <td>{{ cleaning.place.name }}</td>
-                                <td>{{ cleaning.scheduled_start_dt|date:"d/m/Y" }}</td>
-                                <td><a href="{% url 'cleaning' cleaning.uuid %}">View</a></td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                {% include "cleanings/partials/cleanings_table_for_cleaner.html" %}
             </div>
         </div>
     </div>
 {% endblock content %}
 
-
 {% block js_stuff %}
     <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.0/moment.min.js" integrity="sha512-Izh34nqeeR7/nwthfeE0SI3c8uhFSnqxV0sI9TvTcXiFJkMd6fB644O64BRq2P/LA/+7eRvCw4GmLsXksyTHBg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <script>
         $(document).ready(function(){
             $("table").DataTable({
                 order: [],
+            });
+
+            $(".dateinput").each(function (){
+                $(this).datepicker({
+                    dateFormat: "mm/dd/yy",
+                    numberOfMonths: 1,
+                });
             })
+
         })
     </script>
 {% endblock js_stuff %}

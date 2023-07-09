@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block header_stuff %}
+{% endblock header_stuff %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-5 mx-auto">
+            <div>
+                {% crispy form %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block js_stuff %}
+{% endblock js_stuff %}

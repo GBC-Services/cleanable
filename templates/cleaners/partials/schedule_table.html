@@ -1,0 +1,29 @@
+<div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped">
+        <thead>
+        <tr>
+            <th>Day</th>
+            {% for time_slot in time_slots %}
+                <th>{{ time_slot }}</th>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+            {% for day in days %}
+                <tr>
+                    <td>{{ day.name }}</td>
+                    {% if not is_update %}
+                        {% for time_slot in day.time_slots %}
+                            <td>{% if time_slot.is_active %}Yes{% endif %}</td>
+                        {% endfor %}
+                    {% elif object == request.user %}
+                        {% for time_slot in day.time_slots %}
+                            <td><input name="{{ time_slot.field_name }}" type="checkbox"
+                                       {% if time_slot.is_active %}checked{% endif %}></td>
+                        {% endfor %}
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

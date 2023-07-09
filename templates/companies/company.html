@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-center">
+                    {% if request.user.company == object %}
+{#                        <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>#}
+                        {{ object.name }}
+                    {% else %}
+                        {{ object.name }}
+                    {% endif %}
+                </div>
+                {% if request.user.company == object %}
+                    <div class="h5 text-start">Hello {{ request.user.first_name }}, nice to see you here!</div>
+                {% endif %}
+                {% if request.user.is_manager %}
+                    {% if not object.has_fees_accepted %}
+                        {% if object.get_last_fees_snapshot %}
+                            <div class="alert alert-danger">
+                                You have unaccepted <a href="{% url 'company_service_fees' %}">service fees</a>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-primary">
+                                We will send you service fees to accept soon!
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-lg-3">
+                <div class="card mb-3 h-100">
+                    <div class="card-header text-white bg-success h5">New Orders Today</div>
+                    <div class="card-body d-flex justify-content-center align-items-center">
+                        <div class="h1 text-center">15</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="card mb-3 h-100">
+                    <div class="card-header text-white bg-success h5">Cleanings Today</div>
+                    <div class="card-body d-flex justify-content-center align-items-center">
+                        <div class="h1 text-center">11/16</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="card mb-3 h-100">
+                    <div class="card-header text-white bg-success h5">Cleaners Today</div>
+                    <div class="card-body d-flex justify-content-center align-items-center">
+                        <div class="h1 text-center">5/12</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="card mb-3 h-100">
+                    <div class="card-header text-white bg-primary h5">Earned This Month, USD</div>
+                    <div class="card-body">
+                        <div class="h1 text-center">25,385.92</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-lg-12 text-center">
+                <a href="{% if request.user.is_general_admin %}
+                    {% url 'any_company_service_fees' object.uuid %}
+                    {% else %}{% url 'company_service_fees'%}{% endif %}" class="me-3">View Service Fees</a>
+                <a href="" class="me-3">View All Cleanings</a>
+                <a href="">View All Cleaners</a>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-lg-12">
+                <div class="h3 text-center">Cleanings to Assign</div>
+                {% include "cleanings/partials/cleanings_table_for_company.html" %}
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block js_stuff %}
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $("table").DataTable({
+                order: [],
+            });
+
+            $(".cleaner-assign-form").on("submit", function (e){
+                e.preventDefault();
+                tr = $(this).closest("tr");
+                cleaning_uuid = tr.attr("data-uuid");
+                cleaner_uuid = $(this).find("#id_cleaner").val();
+                data = {
+                    "csrfmiddlewaretoken": $(this).find("[name='csrfmiddlewaretoken']").val(),
+                    "cleaning_uuid": cleaning_uuid,
+                    "cleaner_uuid": cleaner_uuid
+                }
+                url = "{% url 'assign_cleaner_for_cleaning' %}";
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    data: data,
+                    success: function (response) {
+                        tr.remove()
+                    },
+                    error: function (response){
+                    }
+                })
+            })
+        })
+    </script>
+{% endblock js_stuff %}

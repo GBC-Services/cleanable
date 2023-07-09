@@ -1,0 +1,18 @@
+<div class="table-responsive">
+    <table class="table discount-info-table">
+        <tbody>
+            <tr>
+                <td><b>Initial amount:</b></td>
+                <td>{{ object.total_fee|floatformat:2 }} USD</td>
+            </tr>
+            <tr>
+                <td><b>Discount:</b></td>
+                <td>{{ object.discount_amount|floatformat:2 }} USD (code: {{ object.discount_code.code }})</td>
+            </tr>
+            <tr>
+                <td><b>Amount to pay:</b></td>
+                <td>{{ object.total_fee_final|floatformat:2 }} USD</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

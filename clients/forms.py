@@ -4,6 +4,7 @@ from crispy_forms.layout import Layout, Fieldset, Field, Submit, HTML, Div, Row,
 from crispy_bootstrap5.bootstrap5 import FloatingField
 from crispy_forms.bootstrap import FormActions
 from .models import Place
+from locations.models import Country, State, City, ZipCode
 import datetime
 
 
@@ -11,54 +12,63 @@ class PlaceForm(forms.ModelForm):
 
     class Meta:
         model = Place
-        fields = ("name", "type", "bedrooms_nmb", "bathrooms_nmb", "kitchens_nmb", "other_rooms_nmb", "total_area_size",
-                  "address", "comments",)
+        fields = ("name", "type", "area_size", "address", "apartment_nmb", "state", "city", "zip_code", "comments", "feature")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.fields["state"] = forms.CharField()
+        self.fields["city"] = forms.CharField()
+        self.fields["zip_code"] = forms.CharField()
         self.fields["comments"].widget.attrs["rows"] = 3
+
         self.helper = FormHelper(self)
-        self.helper.layout = Layout(
+        self.helper.form_id = "id_form"
+        self.helper.attrs["autocomplete"] = "off"
+        self.helper.layout = self.get_layout()
+
+    def get_layout(self):
+        layout = Layout(
             Div(
                 Div(
                     Field("name"),
-                    css_class="col-lg-6"),
-                Div(
                     Field("type"),
-                    css_class="col-lg-6"),
-                css_class="row"
-            ),
-            Div(
-                Div(
-                    Field("bedrooms_nmb"),
-                    css_class="col-lg-4"),
-                Div(
-                    Field("bathrooms_nmb"),
-                    css_class="col-lg-4"),
-                Div(
-                    Field("kitchens_nmb"),
-                    css_class="col-lg-4"),
-                css_class="row"
-            ),
+                    Field("area_size"),
 
-            Div(
-                Div(
-                    Field("other_rooms_nmb"),
-                    css_class="col-lg-4"),
-                Div(
-                    Field("total_area_size"),
-                    css_class="col-lg-4"),
-                css_class="row"
-            ),
+                    Field("address", autocomplete="address-line1"),
 
-            Div(
-                Div(
-                    Field("address"),
+                    Field("apartment_nmb", autocomplete="address-line2"),
+                    Field("city", autocomplete="address-level2"),
+                    Field("state", autocomplete="address-level1"),
+                    Field("zip_code", autocomplete="postal-code"),
+                    Div(css_id="minimap_container", css_class="minimap-container d-none"),
                     Field("comments"),
-                    css_class="col-lg-12"),
+                    Div(Field("feature"), css_class="d-none"),
+                    css_class="col-lg-12 mx-auto"),
                 css_class="row"
             ),
-            Row(
-                Submit('submit', 'Save', css_class="btn btn-primary btn-block text-uppercase")
+            Div(
+                HTML('<button onclick="history.back()" class="btn btn-secondary me-1">Back</button>'),
+                HTML('<button type="submit" class="btn btn-primary btn btn-primary">Save</button>'),
+                css_class="form-group text-center"
             )
         )
+        return layout
+
+    def clean_state(self):
+        state = self.cleaned_data.get("state")
+        country, _ = Country.objects.get_or_create(name="USA")
+        state, _ = State.objects.get_or_create(country=country, name=state)
+        return state
+
+    def clean_city(self):
+        state = self.cleaned_data.get("state")
+        city = self.cleaned_data.get("city")
+        city, _ = City.objects.get_or_create(state=state, name=city)
+        return city
+
+    def clean_zip_code(self):
+        city = self.cleaned_data.get("city")
+        zip_code = self.cleaned_data.get("zip_code")
+        zip_code, _ = ZipCode.objects.get_or_create(city=city, value=zip_code.upper())
+        return zip_code

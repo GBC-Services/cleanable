@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-center">Cleaners</div>
+                <div class="mb-3 text-end">
+                    <a href="{% url 'cleaner_invite_create' %}" class="btn btn-primary">Add New</a>
+                </div>
+                {% include "cleaners/partials/cleaners_table.html" %}
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block js_stuff %}
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $("table").DataTable({
+                order: [],
+            })
+        })
+    </script>
+{% endblock js_stuff %}

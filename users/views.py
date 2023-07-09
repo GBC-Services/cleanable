@@ -3,27 +3,29 @@ from django.views import generic
 from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
+from allauth.account.views import SignupView
 
 
 class Homepage(generic.TemplateView):
-    client_template_name = "clients/homepage.html"
-    manager_template_name = "companies/homepage.html"
-    cleaner_template_name = "cleaners/homepage.html"
-    default_template_name = "users/default_homepage.html"
     public_homepage_name = "users/public_homepage.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        dispatch = super().dispatch(request, *args, **kwargs)
+        user = request.user
+        if user.is_authenticated:
+            if user.is_general_admin:
+                return HttpResponseRedirect(reverse("bookings"))
+            elif user.is_manager:
+                return HttpResponseRedirect(reverse("company"))
+            elif user.is_cleaner:
+                return HttpResponseRedirect(reverse("cleaner"))
+            elif user.is_client:
+                return HttpResponseRedirect(reverse("client"))
+        return dispatch
 
     def get_template_names(self):
         user = self.request.user
-        if user.is_authenticated:
-            if user.is_client:
-                return self.client_template_name
-            elif user.is_manager:
-                return self.manager_template_name
-            elif user.is_cleaner:
-                return self.cleaner_template_name
-            else:
-                return self.default_template_name
-        else:
+        if not user.is_authenticated:
             return self.public_homepage_name
 
 
@@ -33,3 +35,24 @@ class TermsOfUseView(generic.View):
 
 class PrivacyPolicyView(generic.View):
     pass
+
+
+class CustomSignUpView(SignupView):
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["email"] = self.request.GET.get("email")
+        return initial
+
+
+class CleanerSignUpView(SignupView):
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["role"] = self.kwargs.get("role")
+        kwargs["invite_id"] = self.request.GET.get("invite_id")
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context

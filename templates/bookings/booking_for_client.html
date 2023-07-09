@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block header_stuff %}
+    {% if request.user.is_general_admin %}
+        <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+        <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    {% endif %}
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+               {% include "bookings/partials/booking_details.html" %}
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+
+{% block js_stuff %}
+    {% if request.user.is_general_admin %}
+        <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script>
+            $(document).ready(function(){
+                $("table").DataTable({
+                    order: [],
+                })
+            })
+        </script>
+    {% endif %}
+{% endblock js_stuff %}

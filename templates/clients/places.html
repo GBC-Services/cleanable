@@ -1,4 +1,4 @@
-{% extends "base.html" %}>
+{% extends "base.html" %}
 
 {% block header_stuff %}
     <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
@@ -20,7 +20,6 @@
                             <th>Type</th>
                             <th>Name</th>
                             <th>Address</th>
-                            <th>General Info</th>
                             <th>Comments</th>
                             <th></th>
                         </tr>
@@ -28,12 +27,18 @@
                         <tbody>
                         {% for place in request.user.get_places %}
                             <tr>
-                                <td>{{ place.type.name }}</td>
-                                <td>{{ place.name }}</td>
-                                <td>{{ place.address }}</td>
-                                <td>{{ place.general_info }}</td>
-                                <td>{{ place.comments }}</td>
-                                <td><a href="{% url 'place_update' place.uuid %}">Update</a></td>
+                                <td>{{ place.get_type_display }}
+                                    {% if place.type == place.PLACE_TYPE_HOUSE %}
+                                        ({{ place.area_size|default_if_none:0 }} sqft)
+                                    {% endif %}
+                                </td>
+                                <td>{{ place.name|default_if_none:"" }}</td>
+                                <td>{{ place.get_full_address }}</td>
+                                <td>{{ place.comments|truncatewords:50 }}</td>
+                                <td>
+                                    <a href="{% url 'place_update' place.uuid %}">Update</a>
+                                    <a href="{% url 'place' place.uuid %}">View</a>
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>

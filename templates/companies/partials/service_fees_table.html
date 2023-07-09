@@ -1,0 +1,24 @@
+<div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Regularity</th>
+            <th>Is chore</th>
+            <th>Fee, USD</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in last_snapshot.get_fees %}
+            <tr>
+                <td>{{ item.service.name }}</td>
+                <td>{{ item.service.cleaning_type.name }}</td>
+                <td>{{ item.service.regularity_type.name }}</td>
+                <td>{{ item.service.is_chore }}</td>
+                <td>{{ item.fee }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,30 @@
+<div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped">
+        <thead>
+        <tr>
+            <th>Cleaner</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in company_cleaner_invites %}
+            {% with item.user as user %}
+                <tr>
+                    <td>
+                        {% if not user %}{{ item.email }}{% else %}{{ user.firtst_name }}{% endif %}
+                        {% if not user %}
+                            <div><b>Invite link:</b> <span>{{ item.get_invite_link }}</span></div>
+                        {% endif %}
+                    </td>
+                    <td>{% if not user %}Not joined{% elif user.is_active %}Active{% else %}Not Active{% endif %}</td>
+                    <td>
+                        <a href="{% url 'cleaner_delete' item.uuid %}" class="btn btn-danger">Remove</a>
+                        {% if user %}<a href="{% url 'cleaner' user.uuid %}">View</a>{% endif %}
+                    </td>
+                </tr>
+            {% endwith %}
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
