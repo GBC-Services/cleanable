@@ -10,7 +10,7 @@ from django.contrib import messages
 from .models import Service, ServiceFeesSnapshot, ServiceFee
 from companies.models import CompanyServiceFeesSnapshot, CompanyServiceFee
 from .forms import RegionFilterForm, FeeForm, SubcontractorsFeesForm
-from utils.mixins.access_mixins import GeneralAdminAccessMixin
+from utils.mixins.access_mixins import GeneralAdminAccessMixin, GeneralAdminOrManagerOrCleanerAccessMixin
 from locations.models import Region
 from django.db import transaction
 import time
@@ -51,8 +51,15 @@ class ServicesView(LoginRequiredMixin, GeneralAdminAccessMixin, generic.FormView
         context = super().get_context_data(**kwargs)
         context["region"] = self.region
         context["snapshot"] = self.snapshot
-        context["service_fees"] = self.object_list
+        context["services"] = self.object_list
         return context
+
+
+class ServicesChecklistView(LoginRequiredMixin, GeneralAdminOrManagerOrCleanerAccessMixin, generic.DetailView):
+    template_name = "services/service_checklist.html"
+    model = Service
+    slug_field = "uuid"
+    slug_url_kwarg = "uuid"
 
 
 class ServiceFeesSnapshotCreationView(LoginRequiredMixin, GeneralAdminAccessMixin, generic.View):
@@ -78,7 +85,11 @@ class ServiceFeesSnapshotCreationView(LoginRequiredMixin, GeneralAdminAccessMixi
                             service_fees_dict[service_uuid] = ServiceFee(**kwargs)
                         else:
                             setattr(service_fees_dict[service_uuid], fee_type, val)
-            ServiceFee.objects.bulk_create(service_fees_dict.values())
+            # service_fees = ServiceFee.objects.bulk_create(service_fees_dict.values())
+            """To trigger a save method"""
+            for service_fee in service_fees_dict.values():
+                service_fee.save()
+
         messages.success(self.request, "Updated!")
         return HttpResponseRedirect(snapshot.get_url())
 

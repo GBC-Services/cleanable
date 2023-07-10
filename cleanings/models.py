@@ -3,7 +3,6 @@ from utils.models import BaseModel, BaseDictModel
 from clients.models import Place
 from companies.models import Company, CompanyServiceFee
 from services.models import CleaningType, Service, ServiceFee
-from bookings.models import Booking
 import datetime
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -37,7 +36,7 @@ class Cleaning(BaseModel):
     )
 
     """It can be a few cleaning for one booking if cleaning needs to be remade due to complain"""
-    booking = models.ForeignKey(Booking, blank=True, default=None, on_delete=models.CASCADE)
+    booking = models.ForeignKey("bookings.Booking", blank=True, default=None, on_delete=models.CASCADE)
 
     """A company can be retrieved from service as well"""
     company = models.ForeignKey(Company, on_delete=models.CASCADE)

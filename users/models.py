@@ -4,7 +4,6 @@ import uuid
 from .managers import CustomUserManager
 from utils.models import BaseModel, BaseDictModel
 from django.db.models import Q
-from companies.models import Company
 from locations.models import Region
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
@@ -21,7 +20,7 @@ class User(AbstractUser):
         (ROLE_MANAGER, "Manager"),
         (ROLE_CLEANER, "Cleaner")
     )
-    company = models.ForeignKey(Company, blank=True, null=True, default=None, on_delete=models.CASCADE)
+    company = models.ForeignKey("companies.Company", blank=True, null=True, default=None, on_delete=models.CASCADE)
     role = models.PositiveIntegerField(choices=ROLES, default=ROLE_CLIENT)
     is_accepted_emails = models.BooleanField(default=False)
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)

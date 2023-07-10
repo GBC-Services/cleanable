@@ -10,12 +10,20 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
+                    {% if request.user.is_general_admin %}
+                        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="{% url 'any_company' object.uuid %}">{{ object.name }}</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Service Fees</li>
+                            </ol>
+                        </nav>
+                    {% endif %}
                     <div class="h3 text-center">Service Fees</div>
                     <div class="text-center">
                         {% if last_snapshot.is_accepted %}
-                            <div>These service fees have been accepted at {{ last_snapshot.accepted_dt }}</div>
+                            <div class="">These service fees have been accepted at {{ last_snapshot.accepted_dt }}</div>
                         {% else %}
-                            <div>These service fees have not been accepted</div>
+                            <div class="alert alert-danger">These service fees have not been accepted yet.</div>
                             {% if request.user.is_manager %}
                                 <div>
                                     <a href="{% url 'accept_company_fees' last_snapshot.uuid %}" class="btn btn-success mt-3">Accept Now</a>

@@ -13,4 +13,7 @@ urlpatterns = [
     path('company-service-fees', views.CompanyServiceFeesView.as_view(), name='company_service_fees'),
 
     path('accept-company-fees/<uuid>', views.AcceptCompanyFeesView.as_view(), name='accept_company_fees'),
+
+    path('company-cleaners', views.CompanyCleanersView.as_view(), name='company_cleaners'),
+    path('company-cleaners/<uuid>', views.CompanyCleanersView.as_view(), name='any_company_cleaners'),
 ]

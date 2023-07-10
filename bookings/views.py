@@ -19,6 +19,7 @@ from .forms import (BookingForm, BookingCommentOnlyForm, PlacesForm, DiscountCod
                     PublicBookingDateTimeForm, PublicBookingAddressForm)
 from .mixins.views import UserSessionMixin, CheckoutViewMixin
 from services.models import ServiceFee
+from cleanings.models import Cleaning
 from utils.mixins.access_mixins import (ClientAccessMixin, ClientOrNotAuthAccessMixin,
                                         GeneralAdminAccessMixin, GeneralAdminOrClientAccessMixin)
 from utils.mixins.queryset_mixins import BookingsMixin, NonAuthBookingMixin
@@ -155,11 +156,14 @@ class BookingCleaningAssignView(LoginRequiredMixin, GeneralAdminAccessMixin, Boo
     def get(self, *args, **kwargs):
         booking = self.get_object()
         company = self.get_company()
-        created = booking.assign_cleaning(company)
-        if created:
-            messages.success(self.request, "Done!")
+        if not Cleaning.objects.filter(booking=booking, status__lte=Cleaning.STATUS_NOT_COMPLETED).exists():
+            created = booking.assign_cleaning(company)
+            if created:
+                messages.success(self.request, "Done!")
+            else:
+                messages.error(self.request, "Error while creating a cleaning!")
         else:
-            messages.error(self.request, "Error while creating a cleaning!")
+            messages.error(self.request, "This booking is already assigned and active in another company!")
         return HttpResponseRedirect(booking.get_absolute_url())
 
 

@@ -37,14 +37,17 @@ class Region(BaseDictModel):
 
     def save(self, *args, **kwargs):
         if not self.profit_rate:
-            self.profit_rate = settings.DEFAULT_PROFIT_RATE
+            profit_rate = settings.DEFAULT_PROFIT_RATE
+            profit_rate = 100 if profit_rate > 100 else profit_rate
+            self.profit_rate = profit_rate
         super().save(*args, **kwargs)
 
     def get_fees_snapshots(self):
         return self.servicefeessnapshot_set.all().order_by("-id")
 
     def get_fees_last_snapshot(self):
-        """If snapshots are ordered by -id, then the most recent one should be selected with .first() instead of .last()"""
+        """If snapshots are ordered by -id, then the most recent one
+        should be selected with .first() instead of .last()"""
         return self.get_fees_snapshots().first()
 
     def get_service_fees(self, is_chore=None):

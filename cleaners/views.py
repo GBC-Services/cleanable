@@ -9,7 +9,10 @@ from django.contrib.messages.views import SuccessMessageMixin
 from .models import CompanyCleanerInvite, SchedulePeriod, ScheduleTimeSlot, CleanerSchedule
 from users.models import User
 from .forms import CompanyCleanerInviteForm, CleanerScheduleForm
-from utils.mixins.access_mixins import ManagerAccessMixin, CleanerAccessMixin, ManagerOrCleanerAccessMixin
+from utils.mixins.access_mixins import (GeneralAdminOrManagerOrCleanerAccessMixin,
+                                        ManagerOrCleanerAccessMixin, ManagerAccessMixin, CleanerAccessMixin)
+from utils.mixins.queryset_mixins import CleanerMixin
+from .mixins import ScheduleMixin
 from django.contrib import messages
 from django.db import transaction
 
@@ -27,21 +30,11 @@ class CleanersView(LoginRequiredMixin, ManagerAccessMixin, generic.TemplateView)
         return super().get_queryset().filter(company=self.request.user.company)
 
 
-class CleanerView(LoginRequiredMixin, ManagerOrCleanerAccessMixin, generic.DetailView):
+class CleanerView(LoginRequiredMixin, ManagerOrCleanerAccessMixin, CleanerMixin, generic.DetailView):
     template_name = "cleaners/cleaner.html"
     model = User
     slug_field = "uuid"
     slug_url_kwarg = "uuid"
-
-    def get_queryset(self):
-        return super().get_queryset().filter(company=self.request.user.company)
-
-    def get_object(self, queryset=None):
-        user = self.request.user
-        if user.role == user.ROLE_CLEANER:
-            return user
-        else:
-            return super().get_object(queryset=queryset)
 
     def get_context_data(self, **kwargs):
         context_data = super().get_context_data(**kwargs)
@@ -82,29 +75,6 @@ class CleanerDeleteView(LoginRequiredMixin, ManagerAccessMixin, generic.DetailVi
 
         messages.success(self.request, "Done!")
         return HttpResponseRedirect(reverse("cleaners"))
-
-
-class ScheduleMixin:
-    next_week = False
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        period = self.get_period()
-        context["period"] = period
-        context["time_slots"] = settings.TIME_SLOTS
-        context["days"] = period.get_or_create_cleaner_schedule_data(user)
-        return context
-
-    def get_period(self):
-        period_uuid = self.request.GET.get("period")
-        if period_uuid:
-            """Get any existing schedule period"""
-            schedule_period = SchedulePeriod.objects.get(uuid=period_uuid)
-        else:
-            """Get or create a schedule period for the current or for the next week only"""
-            schedule_period = SchedulePeriod().get_or_create_period(next_week=self.next_week)
-        return schedule_period
 
 
 class CleanerScheduleView(LoginRequiredMixin, CleanerAccessMixin, ScheduleMixin, generic.DetailView):

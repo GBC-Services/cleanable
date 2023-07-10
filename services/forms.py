@@ -44,8 +44,8 @@ class SubcontractorsFeesForm(forms.Form):
         self.helper.form_action = snapshot.create_subcontractors_fees_url()
         self.helper.form_method = "post"
 
-        service_fees = Service.objects.filter(is_active=True).order_by("id")
-        context = dict(snapshot=snapshot, service_fees=service_fees, fees_dict=snapshot.get_fees(as_service_fee_dict=True))
+        services = Service.objects.filter(is_active=True).order_by("id")
+        context = dict(snapshot=snapshot, services=services, fees_dict=snapshot.get_fees(as_service_fee_dict=True))
         table = render_to_string("services/partials/service_fees_table.html", context)
         self.helper.layout = Layout(
             Div(

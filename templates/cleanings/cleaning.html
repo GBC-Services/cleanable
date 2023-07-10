@@ -12,8 +12,8 @@
                    <li><b>Date and time: </b>{{ object.get_scheduled_dt_range }}</li>
                 </ul>
                 <ul class="list-unstyled">
-                    <li><b>Type: </b>{{ object.booking.place.type.name }}</li>
-                    <li><b>Address: </b> {{ object.booking.place.address }}</li>
+                    <li><b>Type: </b>{{ object.booking.place.get_type_display }}</li>
+                    <li><b>Address: </b> {{ object.booking.place.get_full_address }}</li>
                     <li><b>Notes: </b>{{ object.booking.place.comments }}</li>
                 </ul>
             </div>
@@ -22,13 +22,17 @@
                     <li><b>Services: </b>
                         <ul class="">
                             {% for booking_service in object.booking.get_booking_services %}
-                                <li>{{ booking_service.service.name }}</li>
+                                <li>{{ booking_service.service.name }}
+                                    <a href="{% url 'service_checklist' booking_service.service.uuid %}">
+                                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                                    </a>
+                                </li>
                             {% endfor %}
                         </ul>
                     </li>
-                    <li class="mb-3"><b>Comments from Client: </b>{{ object.booking.comments|linebreaks }}</li>
-                    <li class="mb-3"><b>Comments from Manager: </b>{{ object.manager_comments|linebreaks }}</li>
-                    <li class="mb-3"><b>Comments from Cleaner: </b>{{ object.cleaner_comments|linebreaks }}
+                    <li class="mb-3"><b>Comments from Client: </b>{{ object.booking.comments|default_if_none:""|linebreaks }}</li>
+                    <li class="mb-3"><b>Comments from Manager: </b>{{ object.manager_comments|default_if_none:""|linebreaks }}</li>
+                    <li class="mb-3"><b>Comments from Cleaner: </b>{{ object.cleaner_comments|default_if_none:""|linebreaks}}
                         {% if request.user.is_cleaner %}<a href="{% url 'cleaner_comment' object.uuid %}">Edit</a>{% endif %}
                     </li>
                 </ul>
@@ -56,29 +60,31 @@
         </div>
         <div class="row">
             <div class="col-lg-6">
-                <div class="h3">Statuses</div>
-                <table class="table table-striped table-bordered" width="100%">
-                    <thead>
-                        <tr>
-                            <td>DT</td>
-                            <td>Status</td>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% with object.get_status_changings as status_changings %}
-                            {% if not status_changings %}
-                                No changes yet
-                            {% else %}
+                <div class="h3">Statuses history</div>
+                {% with object.get_status_changings as status_changings %}
+                    {% if not status_changings %}
+                        No changes yet
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered" width="100%">
+                                <thead>
+                                <tr>
+                                    <td>DT</td>
+                                    <td>Status</td>
+                                </tr>
+                                </thead>
+                                <tbody>
                                 {% for status_change in status_changings %}
                                     <tr>
                                         <td>{{ status_change.created|date:"m/d/Y H:i:s" }}</td>
                                         <td>{{ status_change.get_status_display }}</td>
                                     </tr>
                                 {% endfor %}
-                            {% endif %}
-                        {% endwith %}
-                    </tbody>
-                </table>
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                {% endwith %}
             </div>
             <div class="col-lg-6">
                 <div class="h3 text-center">Chat</div>
@@ -89,7 +95,9 @@
                         {% endfor %}
                     </div>
                 </div>
-                {% crispy form %}
+                {% if request.user.is_manager or request.user.is_cleaner %}
+                    {% crispy form %}
+                {% endif %}
             </div>
         </div>
     </div>

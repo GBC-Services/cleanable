@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock header_stuff %}
+
+{% block content %}
+    {% with object.get_last_fees_snapshot as last_snapshot %}
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    {% if request.user.is_general_admin %}
+                        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="{% url 'any_company' object.uuid %}">{{ object.name }}</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Cleaners</li>
+                            </ol>
+                        </nav>
+                    {% endif %}
+                    <div class="h3 text-center">Cleaners</div>
+                </div>
+                <div class="col-lg-12">
+                    <div class="table-responsive mt-3">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Joined</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for item in object.get_cleaners %}
+                                <tr>
+                                    <td>{{ item.get_full_name }}</td>
+                                    <td>{{ item.email }}</td>
+                                    <td>{{ item.phone|default_if_none:"" }}</td>
+                                    <td>{{ item.date_joined|date:"m/d/Y" }}</td>
+                                    <td><a href="{% url 'any_cleaner' item.uuid %}">View</a></td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endwith %}
+{% endblock content %}
+
+{% block js_stuff %}
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $("table").DataTable({
+                order: [],
+            })
+        })
+    </script>
+{% endblock js_stuff %}

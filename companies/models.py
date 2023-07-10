@@ -5,6 +5,7 @@ from django.urls import reverse, reverse_lazy
 from services.models import Service, ServiceFee, ServiceFeesSnapshot
 from locations.models import Region, ZipCode
 from django.utils import timezone
+from users.models import User
 
 
 class Company(BaseDictModel):
@@ -22,7 +23,7 @@ class Company(BaseDictModel):
             region_zip_codes = RegionZipCode.objects.filter(zip_code=self.zip_code)
             if region_zip_codes.count() == 1:
                 self.region = region_zip_codes.last().region
-        super(Company, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse("company_update", kwargs=dict(uuid=self.uuid))
@@ -34,7 +35,7 @@ class Company(BaseDictModel):
         return user.company == self and user.is_cleaner and user.is_active
 
     def get_cleaners(self):
-        return self.user_set.filter(company=self, role=40)
+        return self.user_set.filter(company=self, role=User.ROLE_CLEANER)
 
     def get_company_cleaner_invites(self):
         return self.companycleanerinvite_set.filter(is_active=True)
