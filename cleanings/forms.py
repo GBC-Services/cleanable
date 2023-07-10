@@ -3,7 +3,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Field, Submit, HTML, Div, Row, Column
 from crispy_bootstrap5.bootstrap5 import FloatingField
 from crispy_forms.bootstrap import FormActions
-from .models import Booking, Cleaning
+from .models import Cleaning
 from clients.models import Place
 import datetime
 

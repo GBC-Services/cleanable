@@ -12,6 +12,7 @@ from django.db import transaction
 import datetime
 import urllib.parse
 import stripe
+from cleanings.models import Cleaning
 
 
 stripe.api_key = settings.STRIPE_API_KEY
@@ -44,13 +45,15 @@ class Booking(BaseModel):
     STATUS_NEW = 10
     STATUS_IN_WORK = 20
     STATUS_COMPLETED = 30
-    STATUS_CANCELLED_BY_SERVICE = 40
-    STATUS_CANCELLED_BY_CLIENT = 50
+    STATUS_CANCELLED_BY_COMPANY = 40
+    STATUS_CANCELLED_BY_SERVICE = 50
+    STATUS_CANCELLED_BY_CLIENT = 60
 
     STATUSES = (
         (STATUS_NEW, "New"),
         (STATUS_IN_WORK, "In work"),
         (STATUS_COMPLETED, "Completed"),
+        (STATUS_CANCELLED_BY_COMPANY, "Cancelled by Company"),
         (STATUS_CANCELLED_BY_SERVICE, "Cancelled by Service"),
         (STATUS_CANCELLED_BY_CLIENT, "Cancelled by client"),
     )
@@ -141,17 +144,18 @@ class Booking(BaseModel):
         from cleanings.models import Cleaning
         if not self.is_active_cleaning():
             with transaction.atomic():
-                Cleaning.objects.get_or_create(booking=self, company=company)
-                self.status = self.STATUS_IN_WORK
-                self.save(force_update=True)
+                if not Cleaning.objects.filter(booking=self, status__lte=Cleaning.STATUS_NOT_COMPLETED).exists():
+                    Cleaning.objects.create(booking=self, company=company)
+                    self.status = self.STATUS_IN_WORK
+                    self.save(force_update=True)
                 return True
         return False
 
     def get_cleanings(self):
-        return self.cleaning_set.all()
+        return self.cleaning_set.all().order_by("-id")
 
     def is_active_cleaning(self):
-        return self.get_cleanings().filter(status__lt=70).exists()  # less than withdrawn or cancelled
+        return self.get_cleanings().filter(status__lte=Cleaning.STATUS_NOT_COMPLETED).exists()
 
     def get_booking_services(self, as_service_fee=False):
         services = self.bookingservice_set.filter(is_active=True)

@@ -87,3 +87,21 @@ class NonAuthBookingMixin:
 
     def get_booking(self):
         return self.user_session.booking_set.filter(client=None, status=Booking.STATUS_NEW).last()
+
+
+class CleanerMixin:
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if user.is_general_admin:
+            return qs
+        else:
+            return qs.filter(company=user.company)
+
+    def get_object(self, queryset=None):
+        user = self.request.user
+        if user.is_cleaner:
+            return user
+        elif user.is_general_admin:
+            return super().get_object(queryset=queryset)

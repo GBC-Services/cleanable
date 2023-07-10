@@ -7,23 +7,24 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from .models import Cleaning, Booking
+from .models import Cleaning
 from .forms import (ClientCleaningForm, CleanerCleaningForm, ManagerCleaningForm,
                     CleaningsFilterForm, CleaningIssueForm, MessageForm)
-from utils.mixins.access_mixins import CleanerAccessMixin, ManagerAccessMixin, ManagerOrCleanerAccessMixin
+from utils.mixins.access_mixins import (GeneralAdminAccessMixin, CleanerAccessMixin, ManagerAccessMixin,
+                                        GeneralAdminOrManagerOrCleanerAccessMixin, ManagerOrCleanerAccessMixin)
 from utils.mixins.queryset_mixins import CleaningsMixin
 from django.http import JsonResponse
 import datetime
 
 
-class CleaningsView(LoginRequiredMixin, ManagerOrCleanerAccessMixin, CleaningsMixin,
+class CleaningsView(LoginRequiredMixin, GeneralAdminOrManagerOrCleanerAccessMixin, CleaningsMixin,
                     generic.ListView, generic.FormView):
     template_name = "cleanings/cleanings.html"
     model = Cleaning
     form_class = CleaningsFilterForm
 
     def get_queryset(self):
-        qs = self.request.user.get_cleanings()
+        qs = super().get_queryset()
         if self.request.GET.get("date"):
             date = datetime.datetime.strptime(self.request.GET.get("date"), "%m/%d/%Y")
             qs = qs.filter(scheduled_date=date)
@@ -35,15 +36,13 @@ class CleaningsView(LoginRequiredMixin, ManagerOrCleanerAccessMixin, CleaningsMi
         return initial
 
 
-class CleaningView(LoginRequiredMixin, CleanerAccessMixin, generic.DetailView, generic.FormView):
+class CleaningView(LoginRequiredMixin, GeneralAdminOrManagerOrCleanerAccessMixin, CleaningsMixin,
+                   generic.DetailView, generic.FormView):
     template_name = "cleanings/cleaning.html"
     model = Cleaning
     slug_field = "uuid"
     slug_url_kwarg = "uuid"
     form_class = MessageForm
-
-    def get_queryset(self):
-        return self.request.user.get_cleanings()
 
 
 class CleaningCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, CleanerAccessMixin, generic.UpdateView):
@@ -84,6 +83,17 @@ class AssignCleanerForCleaningView(LoginRequiredMixin, ManagerAccessMixin, gener
         cleaner = company.get_cleaners().filter(uuid=cleaner_uuid).last()
         cleaning.assign_cleaner(cleaner)
         return JsonResponse(dict(status="success"))
+
+
+class WithdrawCleaningView(LoginRequiredMixin, GeneralAdminAccessMixin, CleaningsMixin, generic.DetailView):
+    model = Cleaning
+    slug_field = "uuid"
+    slug_url_kwarg = "uuid"
+
+    def get(self, *args, **kwargs):
+        self.get_object().set_status(Cleaning.STATUS_CANCELLED_BY_SERVICE)
+        messages.success(self.request, "Done!")
+        return HttpResponseRedirect(self.request.META.get("HTTP_REFERER", "/"))
 
 
 class SetNextStatusForCleaningView(LoginRequiredMixin, ManagerOrCleanerAccessMixin, CleaningsMixin,

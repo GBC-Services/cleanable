@@ -97,3 +97,11 @@ class AcceptCompanyFeesView(LoginRequiredMixin, ManagerAccessMixin, generic.Deta
         else:
             messages.error(self.request, "Error! It has been already accepted before!")
         return HttpResponseRedirect(reverse("my_company"))
+
+
+class CompanyCleanersView(LoginRequiredMixin, ManagerAccessMixin, CompaniesMixin,
+                          generic.DetailView):
+    template_name = "companies/company_cleaners.html"
+    model = Company
+    slug_field = "uuid"
+    slug_url_kwarg = "uuid"

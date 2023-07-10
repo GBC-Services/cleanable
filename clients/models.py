@@ -39,6 +39,9 @@ class Place(BaseDictModel):
 
     comments = models.TextField(blank=True, null=True, default=None)
 
+    def __str__(self):
+        return f"{self.get_full_address()}"
+
     def save(self, *args, **kwargs):
         if not self.name:
             self.name = self.address

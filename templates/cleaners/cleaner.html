@@ -11,7 +11,9 @@
         <div class="row">
             <div class="col-lg-12">
                 <div class="h3 text-start">
-                    Hi{% if request.user.first_name %} {{ request.user.first_name }}{% endif %}, nice to see you here!
+                    {% if request.user.is_cleaner %}
+                        Hi{% if request.user.first_name %} {{ request.user.first_name }}{% endif %}, nice to see you here!
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -55,12 +57,16 @@
 
         <div class="row mt-5">
             <div class="col-lg-12">
-                <div class="h3 text-center">Your Cleanings for Today</div>
+                <div class="h3 text-center">{% if request.user.is_cleaner %}Your {% endif %}Cleanings for Today</div>
                 {% with self.object.get_cleanings_for_today as cleanings %}
                     {% include "cleanings/partials/cleanings_table_for_cleaner.html" %}
                 {% endwith %}
                 <div class="text-center mt-3">
-                    <a href="{% url 'cleanings' %}">View All</a>
+                    {% if request.user.is_cleaner %}
+                        <a href="{% url 'cleanings' %}">View All</a>
+                    {% else %}
+                        <a href="{% url 'any_cleaner_cleanings' object.uuid %}">View All</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

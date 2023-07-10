@@ -44,6 +44,9 @@ class Service(BaseDictModel):
         else:
             return f"{self.name}"
 
+    def get_is_fixed_payment(self):
+        return not self.is_area_based_fee
+
 
 class ServiceFeesSnapshot(BaseModel):
     region = models.ForeignKey(Region, blank=True, null=True, default=None, on_delete=models.CASCADE)
@@ -98,4 +101,15 @@ class ServiceFee(BaseModel):
         if self.service.is_area_based_fee:
             name += " per sqft"
         return name
+
+    def save(self, *args, **kwargs):
+        print(f"service fee save: {self.pk}")
+        if not self.pk and not self.subcontractor_fee:
+            print("===")
+            print(self.client_fee)
+            profit_rate_index = ((100+float(self.snapshot.region.profit_rate))/100)
+            print(profit_rate_index)
+            self.subcontractor_fee = float(self.client_fee) / profit_rate_index
+            print(self.subcontractor_fee)
+        super().save(*args, **kwargs)
 

@@ -4,6 +4,8 @@ from . import views
 
 urlpatterns = [
     path('services', views.ServicesView.as_view(), name='services'),
+    path('service-checklist/<uuid>', views.ServicesChecklistView.as_view(), name='service_checklist'),
+
     path('service-fees-snapshot-creation/', views.ServiceFeesSnapshotCreationView.as_view(),
          name='service_fees_snapshot_creation'),
 

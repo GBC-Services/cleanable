@@ -37,6 +37,15 @@ class ManagerOrCleanerAccessMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
+class GeneralAdminOrManagerOrCleanerAccessMixin:
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if not user.is_general_admin and not user.is_manager and not user.is_cleaner:
+            return HttpResponseForbidden()
+        return super().dispatch(request, *args, **kwargs)
+
+
 class GeneralAdminOrManagerAccessMixin:
 
     def dispatch(self, request, *args, **kwargs):
