@@ -31,9 +31,6 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if booking.status == booking.STATUS_NEW %}
-                        <a href="{% url 'booking' booking.uuid %}">Assign</a>
-                    {% endif %}
                     <a href="{% url 'booking' booking.uuid %}">View</a>
                 </td>
             </tr>

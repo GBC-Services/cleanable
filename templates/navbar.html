@@ -35,6 +35,10 @@
 
                 {% if request.user.is_manager %}
                     <li class="nav-item">
+                        <a class="nav-link {% if request.path == "company" %}active{% endif %}"
+                           href="{% url 'company' %}">Company</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if 'cleaning' in request.path %}active{% endif %}"
                            href="{% url 'cleanings' %}">Cleanings</a>
                     </li>
@@ -45,10 +49,6 @@
                     <li class="nav-item">
                         <a class="nav-link {% if 'company-service-fees' in request.path %}active{% endif %}"
                            href="{% url 'company_service_fees' %}">Service Fees</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == "company" %}active{% endif %}"
-                           href="{% url 'company' %}">Company</a>
                     </li>
                 {% endif %}
 

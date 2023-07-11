@@ -253,14 +253,15 @@ class PublicBookingZipCodeView(generic.TemplateView, generic.FormView, UserSessi
         """Just for statistical purposes to see what zip codes where searched"""
         booking_zip_code_search = BookingZipCodeSearch.objects.create(zip_code=zip_code, user_session=user_session)
         try:
-            region_zip_code = RegionZipCode.objects.get(zip_code=zip_code)
+            region_zip_code = RegionZipCode.objects.get(zip_code=zip_code, is_active=True)
             if region_zip_code.region.get_fees_last_snapshot():
                 booking_zip_code_search.is_service_available = True
                 booking_zip_code_search.save(force_update=True)
                 url = f"{self.get_success_url()}?zip_code={zip_code}"
                 return HttpResponseRedirect(url)
             else:
-                form.add_error("zip_code", "This area is out of the coverage at this moment, but it will be covered soon")
+                form.add_error("zip_code", "This area is out of the coverage at this moment, "
+                                           "but it will be covered soon")
                 return self.form_invalid(form)
         except RegionZipCode.DoesNotExist:
             form.add_error("zip_code", "This area is out of the coverage at this moment.")

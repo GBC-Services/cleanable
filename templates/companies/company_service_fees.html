@@ -22,9 +22,9 @@
                     <div class="text-center">
                         {% if last_snapshot.is_accepted %}
                             <div class="">These service fees have been accepted at {{ last_snapshot.accepted_dt }}</div>
-                        {% else %}
+                        {% elif object.get_last_fees_snapshot %}
                             <div class="alert alert-danger">These service fees have not been accepted yet.</div>
-                            {% if request.user.is_manager %}
+                            {% if request.user.is_manager and last_snapshot %}
                                 <div>
                                     <a href="{% url 'accept_company_fees' last_snapshot.uuid %}" class="btn btn-success mt-3">Accept Now</a>
                                 </div>
