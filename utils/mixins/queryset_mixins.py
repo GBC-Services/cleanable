@@ -57,6 +57,13 @@ class CompaniesMixin:
         else:
             return self.model.objects.none()
 
+    def get_object(self, queryset=None):
+        user = self.request.user
+        if user.is_manager:
+            return user.company
+        else:
+            return super().get_object(queryset)
+
 
 class BookingsMixin:
 

@@ -35,6 +35,9 @@ class BookingsView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, Bookings
     template_name = "bookings/bookings.html"
     model = Booking
 
+    def get_queryset(self):
+        return super().get_queryset().filter(place__isnull=False)
+
 
 class BookingView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, BookingsMixin, generic.DetailView):
     model = Booking
@@ -61,6 +64,12 @@ class BookingCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAcc
             self.place = self.get_place()
             if not self.place:
                 return HttpResponseRedirect(reverse("place_selection"))
+
+            """To prevent updating after if the booking was completed 
+            and the score for the cleaner has been already given"""
+            object = self.get_object()
+            if not object is None and object.status == object.STATUS_COMPLETED and object.score_for_cleaner:
+                return HttpResponseForbidden()
         return super().dispatch(request, *args, **kwargs)
 
     def get_place(self):
@@ -218,7 +227,7 @@ class SuccessfulPaymentView(ClientOrNotAuthAccessMixin, BookingsMixin, generic.D
         return super().get(*args, **kwargs)
 
 
-class StripeReceiptView(LoginRequiredMixin, ClientAccessMixin, BookingsMixin, generic.DetailView):
+class StripeReceiptView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, BookingsMixin, generic.DetailView):
     model = Booking
     slug_field = "uuid"
     slug_url_kwarg = "uuid"
@@ -250,14 +259,15 @@ class PublicBookingZipCodeView(generic.TemplateView, generic.FormView, UserSessi
         """Just for statistical purposes to see what zip codes where searched"""
         booking_zip_code_search = BookingZipCodeSearch.objects.create(zip_code=zip_code, user_session=user_session)
         try:
-            region_zip_code = RegionZipCode.objects.get(zip_code=zip_code)
+            region_zip_code = RegionZipCode.objects.get(zip_code=zip_code, is_active=True)
             if region_zip_code.region.get_fees_last_snapshot():
                 booking_zip_code_search.is_service_available = True
                 booking_zip_code_search.save(force_update=True)
                 url = f"{self.get_success_url()}?zip_code={zip_code}"
                 return HttpResponseRedirect(url)
             else:
-                form.add_error("zip_code", "This area is out of the coverage at this moment, but it will be covered soon")
+                form.add_error("zip_code", "This area is out of the coverage at this moment, "
+                                           "but it will be covered soon")
                 return self.form_invalid(form)
         except RegionZipCode.DoesNotExist:
             form.add_error("zip_code", "This area is out of the coverage at this moment.")

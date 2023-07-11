@@ -24,7 +24,7 @@ class BookingForm(BookingDateTimeFormMixin, forms.ModelForm):
         model = Booking
         fields = [
                   # "regularity_type",  # for future possible using for one time or regular cleanings
-                  "comments"]  # "scheduled_start_dt", "scheduled_end_dt",
+                  "comments",]  # "scheduled_start_dt", "scheduled_end_dt",
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user")
@@ -71,15 +71,25 @@ class BookingForm(BookingDateTimeFormMixin, forms.ModelForm):
 
 
 class BookingCommentOnlyForm(forms.ModelForm):
+    score_for_cleaner = forms.IntegerField(min_value=1, max_value=5, label="Score for cleaner (1-5)")
 
     class Meta:
         model = Booking
-        fields = ["comments"]
+        fields = ["comments", "score_for_cleaner", "feedback_for_cleaner"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if int(self.instance.status) != self.instance.STATUS_COMPLETED:
+            del self.fields["score_for_cleaner"]
+            del self.fields["feedback_for_cleaner"]
+        else:
+            del self.fields["comments"]
+
         self.helper = FormHelper(self)
-        self.helper.layout.append(
+        self.helper.layout = Layout(
+            Field("comments"),
+            Field("score_for_cleaner"),
+            Field("feedback_for_cleaner"),
             Div(
                 HTML('<button onclick="history.back()" class="btn btn-secondary me-1">Back</button>'),
                 Submit('submit', 'Save', css_class="btn btn-primary btn-block text-uppercase"),

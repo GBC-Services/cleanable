@@ -11,18 +11,26 @@ from cleaners.models import CompanyCleanerInvite
 
 @receiver(post_save, sender=User, dispatch_uid='user_post_save')
 def user_post_save(sender, instance, created, **kwargs):
-    if created and instance.role == instance.ROLE_CLEANER:
-        CompanyCleanerInvite.objects.filter(email=instance.email, company=instance.company, is_active=True, user__isnull=True)\
-            .update(user=instance, is_active=False)
+    pass
+
+    """The code below moved to log in signal handler function"""
+    # if created and instance.role == instance.ROLE_CLEANER:
+    #     CompanyCleanerInvite.objects.filter(email=instance.email, company=instance.company, is_active=True, user__isnull=True)\
+    #         .update(user=instance, is_active=False)
 
 
 @receiver(user_logged_in)
 def login_logger(request, user, **kwargs):
+
+    CompanyCleanerInvite.objects.filter(email=user.email, company=user.company, is_active=True, user__isnull=True) \
+        .update(user=user, is_active=False)
+
     if not request.session.session_key:
         request.session.create()
     session_id = request.session.session_key
     email = user.email
-    booking_uuids = Booking.objects.filter(stripe_email__iexact=email, client__isnull=True).values_list("user_session__uuid", flat=True)
+    booking_uuids = Booking.objects.filter(stripe_email__iexact=email, client__isnull=True)\
+        .values_list("user_session__uuid", flat=True)
 
     """ToDo: session id part of Q will not work, because session id are changed with log in.
     If this is still needed, custom SESSION_ENGINE in settings could be a solution. Custom session class

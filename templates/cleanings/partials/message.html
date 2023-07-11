@@ -1,4 +1,4 @@
-<div class="d-flex justify-content-end">
+<div class="d-flex {% if request.user == message.user %}justify-content-end{% else %}justify-content-start{% endif %}">
     <div class="w-50 alert {% if request.user == message.user %}alert-info{% else %}alert-secondary{% endif %}">
         {{ message.text }}
     </div>

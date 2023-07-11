@@ -13,6 +13,7 @@ import datetime
 import urllib.parse
 import stripe
 from cleanings.models import Cleaning
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -101,11 +102,13 @@ class Booking(BaseModel):
     cleaner_comments = models.TextField(blank=True, null=True, default=None)
     manager_comments = models.TextField(blank=True, null=True, default=None)
 
-    score_for_cleaner = models.PositiveIntegerField(blank=True, null=True, default=None)
+    score_for_cleaner = models.PositiveIntegerField(blank=True, null=True, default=None,
+                                                    validators=[MinValueValidator(1), MaxValueValidator(5)])
     feedback_for_cleaner = models.TextField(blank=True, null=True, default=None)
     feedback_tags_for_cleaner = models.ManyToManyField(FeedbackTagForCleaner, blank=True, default=None)
 
-    score_for_client = models.PositiveIntegerField(blank=True, null=True, default=None)
+    score_for_client = models.PositiveIntegerField(blank=True, null=True, default=None,
+                                                   validators=[MinValueValidator(1), MaxValueValidator(5)])
     feedback_for_client = models.TextField(blank=True, null=True, default=None)
     feedback_tags_for_client = models.ManyToManyField(FeedbackTagForClient, blank=True, default=None)
 
@@ -237,6 +240,9 @@ class Booking(BaseModel):
 
     def get_encoded_stripe_email(self):
         return urllib.parse.quote(self.stripe_email)
+
+    def get_payment_status(self):
+        return "Yes" if self.is_paid else "No"
 
 
 class BookingStatusChange(BaseModel):

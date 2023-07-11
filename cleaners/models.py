@@ -16,7 +16,7 @@ from django.db import transaction
 
 class CompanyCleanerInvite(BaseModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    email = models.EmailField()
+    email = models.EmailField(unique=True)
     user = models.OneToOneField(UserModel, blank=True, null=True, default=None, on_delete=models.CASCADE)
 
     def get_invite_link(self):

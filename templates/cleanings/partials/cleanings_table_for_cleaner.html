@@ -8,6 +8,7 @@
                 <th>Place Name</th>
                 <th>Date</th>
                 <th>Status</th>
+                <th>Score</th>
                 <th></th>
             </tr>
         </thead>
@@ -17,6 +18,7 @@
                     <td>{{ cleaning.booking.place.name }}</td>
                     <td>{{ cleaning.booking.get_scheduled_dt_range }}</td>
                     <td>{{ cleaning.get_status_display }}</td>
+                    <td>{{ cleaning.booking.score_for_cleaner|default_if_none:"" }}</td>
                     <td>
                         <a href="{% url 'cleaning' cleaning.uuid %}" class="btn btn-primary">View</a>
                     </td>

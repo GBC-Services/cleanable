@@ -9,6 +9,7 @@
                 <th>Services</th>
                 <th>Fee, USD</th>
                 <th>Status</th>
+                <th>Payment</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -22,10 +23,14 @@
                 <td>{{ booking.get_service_names_as_string }}</td>
                 <td>{{ booking.total_fee_final }}</td>
                 <td>{{ booking.get_status_display }}</td>
-                <td>
-                    {% if booking.status == booking.STATUS_NEW %}
-                        <a href="{% url 'booking' booking.uuid %}">Assign</a>
+                <td>{{ booking.get_payment_status }}
+                    {% if booking.is_paid %}
+                        <a href="{% url 'stripe_receipt' booking.uuid %}">
+                            <i class="fa fa-file" aria-hidden="true"></i>
+                        </a>
                     {% endif %}
+                </td>
+                <td>
                     <a href="{% url 'booking' booking.uuid %}">View</a>
                 </td>
             </tr>

@@ -88,8 +88,11 @@ class CustomSignupForm(SignupForm):
                    "is_accepted_tos", "is_accepted_pp", "is_accepted_emails",]
 
     def __init__(self, *args, **kwargs):
-        self.role = kwargs.pop("role") if kwargs.get("role") else None
-        self.invite_id = kwargs.pop("invite_id") if kwargs.get("invite_id") else None
+        print(kwargs)
+        self.role = kwargs.pop("role") if "role" in kwargs else None
+        self.invite_id = kwargs.pop("invite_id") if "invite_id" in kwargs else None
+        print(kwargs)
+        print("===")
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_tag = False

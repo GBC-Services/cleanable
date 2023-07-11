@@ -15,3 +15,8 @@ def get_fee(dictionary, key):
     else:
         fee = 0
     return fee
+
+
+@register.filter
+def get_company_availability_for_booking(obj, booking):
+    return obj.get_availability_for_booking(booking)

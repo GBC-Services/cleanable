@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load general %}
 
 {% block header_stuff %}
     {% if request.user.is_general_admin %}
@@ -74,6 +75,7 @@
                                 <thead>
                                     <tr>
                                         <th>Name</th>
+                                        <th>Status</th>
                                         <th>Availability for {{ booking.get_scheduled_dt_range }}</th>
                                         <th>Action</th>
                                     </tr>
@@ -81,16 +83,31 @@
                                 <tbody>
                                     {% with object.is_active_cleaning as is_active_cleaning %}
                                         {% for company in booking.place.region.get_companies %}
-                                            <tr>
-                                                <td>{{ company.name }}</td>
-                                                <td>True</td>
-                                                <td>
-                                                    {% if not is_active_cleaning %}
-                                                        <a href="{% url 'booking_assign' object.uuid company.uuid %}"
-                                                           class="btn btn-success">Assign</a>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
+                                            {% with company.get_last_fees_snapshot as company_fees_snapshot %}
+                                            {% with company|get_company_availability_for_booking:object as is_company_available_for_dt %}
+                                                <tr>
+                                                    <td>{{ company.name }}</td>
+                                                    <td>
+                                                        {% if company_fees_snapshot and company_fees_snapshot.is_accepted %}
+                                                            Active
+                                                        {% elif company_fees_snapshot and company_fees_snapshot.is_accepted %}
+                                                            Service fees are not accepted
+                                                        {% else %}
+                                                            This company did not receive service fees proposal
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ is_company_available_for_date }}</td>
+                                                    <td>
+                                                        {% if not is_active_cleaning and is_company_available_for_dt %}
+                                                            {% if company_fees_snapshot and company_fees_snapshot.is_accepted %}
+                                                                <a href="{% url 'booking_assign' object.uuid company.uuid %}"
+                                                                   class="btn btn-success">Assign</a>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endwith %}
+                                            {% endwith %}
                                         {% endfor %}
                                     {% endwith %}
                                 </tbody>

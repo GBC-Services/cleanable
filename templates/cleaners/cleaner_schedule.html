@@ -18,16 +18,12 @@
                             {% if previous_period %}
                                 <a href="?period={{ previous_period.uuid }}">
                                     <i class="fa fa-chevron-left" aria-hidden="true"></i></a>
-                            {% else %}
-                                <i class="fa fa-chevron-left" aria-hidden="true"></i>
                             {% endif %}
                         {% endwith %}
                         {% with period.get_next_period as next_period %}
                             {% if next_period %}
                                 <a href="?period={{ period.get_next_period.uuid}}">
                                     <i class="fa fa-chevron-right" aria-hidden="true"></i></a>
-                            {% else %}
-                                <i class="fa fa-chevron-right" aria-hidden="true"></i>
                             {% endif %}
                         {% endwith %}
                     </div>
@@ -38,7 +34,7 @@
             <div class="col-lg-12">
                 {% include "cleaners/partials/schedule_table.html" %}
                 <div class="mt-3 text-center">
-                    <button onclick="history.back()" class="btn btn-secondary me-1">Back</button>
+                    <a href="{% url 'cleaner' %}" class="btn btn-secondary me-1">Back</a>
                     {% if object == request.user %}
                         <a href="{% url 'manage_cleaner_schedule' %}?period={{ period.uuid }}"
                            class="btn btn-primary">Manage Schedule</a>
