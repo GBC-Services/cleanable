@@ -147,7 +147,7 @@ class Cleaning(BaseModel):
         return self.cleaningchatmessage_set.all().order_by("id")
 
     def get_status_changings(self):
-        return self.cleaningstatuschange_set.all().order_by("id")
+        return self.cleaningstatuschange_set.all().order_by("-id")
 
 
 class CleaningStatusChange(BaseModel):

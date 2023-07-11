@@ -30,7 +30,7 @@
                 <div class="card">
                     <div class="card-body">
                         {% crispy form %}
-                        {% if object and object.status <= object.STATUS_COMPLETED %}
+                        {% if object and object.status < object.STATUS_COMPLETED %}
                             <div class="text-center mt-3">
                                 <a href="{% url 'booking_cancel' object.uuid %}">Cancel Booking</a>
                             </div>

@@ -24,7 +24,7 @@ class CleaningsView(LoginRequiredMixin, GeneralAdminOrManagerOrCleanerAccessMixi
     form_class = CleaningsFilterForm
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = super().get_queryset().order_by("-scheduled_date", "-scheduled_start_dt")
         if self.request.GET.get("date"):
             date = datetime.datetime.strptime(self.request.GET.get("date"), "%m/%d/%Y")
             qs = qs.filter(scheduled_date=date)

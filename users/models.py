@@ -93,8 +93,11 @@ class User(AbstractUser):
             return Cleaning.objects.filter(id__in=cleaning_ids)
 
     def get_availability_for_date(self, date):
-        """For a cleaner"""
-        return self.cleanerforcleaning_set.filter(time_slot__date=date, is_active=True)
+        return self.cleanerschedule_set.filter(time_slot__date=date, is_active=True).exists()
+
+    def get_availability_for_cleaning(self, cleaning):
+        return self.cleanerschedule_set.filter(user=self, is_active=True,
+                                              time_slot__date=cleaning.scheduled_date).exists()
 
     def get_cleanings(self):
         from cleanings.models import Cleaning

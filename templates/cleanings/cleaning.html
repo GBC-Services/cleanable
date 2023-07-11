@@ -42,6 +42,16 @@
                 <div>
                     <ul class="list-unstyled">
                         <li><b>Status: </b>{{ object.get_status_display }}</li>
+
+                        {% if object.booking.score_for_cleaner %}
+                            <div class="mt-3">
+                                <ul class="list-unstyled">
+                                    <li><b>Score from client: </b> {{ object.booking.score_for_cleaner }}</li>
+                                    <li><b>Feedback from client: </b> {{ object.booking.feedback_for_cleaner|default_if_none:""|linebreaks }}</li>
+                                </ul>
+                            </div>
+                        {% endif %}
+
                     </ul>
                 </div>
                 <div>
@@ -162,6 +172,7 @@
                         message_html = response.message_html;
                         $("#messages_container").append(message_html);
                         scrollDownChatContainer();
+                        $("#chat_message_form")[0].reset();
                     },
                     error: function (response){
                     }

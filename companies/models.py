@@ -79,6 +79,11 @@ class Company(BaseDictModel):
     def get_client_ids(self):
         return self.get_cleanings().values_list("booking__user_id", flat=True)
 
+    def get_availability_for_booking(self, booking):
+        from cleaners.models import CleanerSchedule
+        return CleanerSchedule.objects.filter(user__company=self, is_active=True,
+                                              time_slot__date=booking.scheduled_date).exists()
+
 
 class CompanyServiceFeesSnapshot(BaseModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)

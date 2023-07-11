@@ -64,6 +64,12 @@ class BookingCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAcc
             self.place = self.get_place()
             if not self.place:
                 return HttpResponseRedirect(reverse("place_selection"))
+
+            """To prevent updating after if the booking was completed 
+            and the score for the cleaner has been already given"""
+            object = self.get_object()
+            if not object is None and object.status == object.STATUS_COMPLETED and object.score_for_cleaner:
+                return HttpResponseForbidden()
         return super().dispatch(request, *args, **kwargs)
 
     def get_place(self):

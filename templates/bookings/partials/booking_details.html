@@ -2,23 +2,25 @@
 <div class="card mb-3">
     <div class="card-body">
         <div>
-            <div class="alert {{ object.get_status_notification_class }}">
-                <b>Status:</b> {{ object.get_status_display }}
-            </div>
+            {% if request.user.is_general_admin or object.status == object.STATUS_NEW %}
+                <div class="alert {{ object.get_status_notification_class }}">
+                    <b>Status:</b> {{ object.get_status_display }}
+                </div>
+            {% endif %}
             {% if object.status >= object.STATUS_IN_WORK %}
                 {% with object.get_last_cleaning as cleaning %}
                     {% with cleaning.status as cleaning_status %}
-                        {% if cleaning_status >= 30 or cleaning_status <= 60 %}
+                        {% if cleaning_status <= 60 %}
                             <div class="mt-3 mb-3">
                                 <div>
                                     <ul class="list-unstyled">
                                         <li><b>Cleaning Status:</b> {{ cleaning.get_status_display }}</li>
                                         <li><b>Cleaner:</b> {{ cleaning.get_cleaners_as_text }}</li>
                                         {% if cleaning.real_start_dt %}
-                                            <li><b>Start:</b> {{ cleaning.real_start_dt|date:"m/d/Y h:i:s" }}</li>
+                                            <li><b>Start:</b> {{ cleaning.real_start_dt|date:"m/d/Y H:i:s" }}</li>
                                         {% endif %}
                                         {% if cleaning.real_end_dt %}
-                                            <li><b>Finish:</b> {{ cleaning.real_end_dt|date:"m/d/Y h:i:s"}}</li>
+                                            <li><b>Finish:</b> {{ cleaning.real_end_dt|date:"m/d/Y H:i:s"}}</li>
                                         {% endif %}
                                     </ul>
                                 </div>
@@ -65,13 +67,14 @@
                 <li class="mt-3"><b>Cleaning time: </b> {{ object.get_scheduled_dt_range }}</li>
                 <li><b>Place: </b>{{ object.place }}, {{ object.place.get_full_address }}</li>
 
-                <li class="mt-3"><b>Comments: </b>
+                <li class="mt-3"><b>{% if object.client == request.user %}Your{% endif %}Comments: </b>
                     {% if object.comments %}
                         {{ object.comments|linebreaks }}
                     {% else %}
                         no comments
                     {% endif %}
                 </li>
+
             </ul>
 
             <div class="mt-3 table-responsive">
@@ -108,11 +111,27 @@
             </div>
 
         </div>
+
+        {% if object.score_for_cleaner %}
+           <div class="mt-3">
+               <ul class="list-unstyled">
+                   <li><b>Score for cleaner: </b> {{ object.score_for_cleaner }}</li>
+                   <li><b>Feedback for cleaner: </b> {{ object.feedback_for_cleaner|default_if_none:""|linebreaks }}</li>
+               </ul>
+           </div>
+        {% endif %}
+
         <div class="text-center mt-3">
             <button onclick="history.back()" class="btn btn-secondary">Back</button>
 
             {% if object.client == request.user %}
-                <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary">Update</a>
+                {% if object.status == object.STATUS_COMPLETED %}
+                    {% if not object.score_for_cleaner %}
+                        <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary">Score the Cleaner</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary">Update</a>
+                {% endif %}
             {% endif %}
         </div>
     </div>
