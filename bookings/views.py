@@ -28,7 +28,7 @@ import time
 import urllib.parse
 
 import stripe
-stripe.api_key = settings.STRIPE_API_KEY
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class BookingsView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, BookingsMixin, generic.ListView):
@@ -419,18 +419,13 @@ class ServicesForPropertyTypeView(UserSessionMixin, NonAuthBookingMixin, generic
     def post(self, *args, **kwargs):
         response_data = dict()
         data = self.request.POST
-        print(data)
-
         zip_code = data.get("zip_code")
         zip_code = ZipCode.objects.get(value=zip_code)
         """ToDo: to add a custom constraint for RegionZipCode to allow only one zip code 
         for a region with is_active=True"""
         try:
             region = RegionZipCode.objects.get(is_active=True, zip_code=zip_code).region
-            print(f"region {region}")
-
             place_type = data.get("place_type")
-
             base_services = None
             if int(place_type) == Place.PLACE_TYPE_APARTMENT:
                 base_services = region.get_fixed_fee_and_extra_service_fees().filter(service__is_chore=False)
@@ -438,11 +433,9 @@ class ServicesForPropertyTypeView(UserSessionMixin, NonAuthBookingMixin, generic
                 base_services = region.get_area_based_and_extra_service_fees().filter(service__is_chore=False)
 
             if base_services:
-                print(11)
                 response_data["base_services"] = [dict(id=item.id, name=item.__str__(), fee=item.client_fee,
                                                        is_area_based_fee=item.service.is_area_based_fee)
                                                    for item in base_services.iterator()]
         except RegionZipCode.DoesNotExist:
             pass
-        print(response_data)
         return JsonResponse(response_data)

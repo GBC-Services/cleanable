@@ -8,17 +8,15 @@ from django.http import HttpResponseRedirect
 from django.contrib.sites.models import Site
 
 import stripe
-stripe.api_key = settings.STRIPE_API_KEY
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class UserSessionMixin:
 
     def get_session_id(self, force_update=False):
-        print("get_session_id")
         if force_update or not self.request.session.session_key:
             self.request.session.create()
         session_id = self.request.session.session_key
-        print(session_id)
         return session_id
 
     def get_or_create_user_session(self):
@@ -57,11 +55,10 @@ class CheckoutViewMixin(generic.DetailView, generic.FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         self.payment_intent = self.get_payment_intent()
         self.save_payment_intent_id(self.payment_intent["id"])
-
-        context["client_secret"] = self.payment_intent["client_secret"]
+        context["stripe_public_key"] = settings.STRIPE_PUBLIC_KEY
+        context["payment_intent_secret"] = self.payment_intent["client_secret"]
         context["successful_payment_url"] = self.get_successful_payment_full_url()
         return context
 
@@ -79,16 +76,16 @@ class CheckoutViewMixin(generic.DetailView, generic.FormView):
         url = f"{settings.ACCOUNT_DEFAULT_HTTP_PROTOCOL}://{domain}{url}"
         return url
 
-    def get_payment_intent(self, payment_intent_id=None):
+    def get_payment_intent(self):
         intent = stripe.PaymentIntent.create(
             amount=int(float(self.get_object().total_fee_final)*100),
             currency='usd',
-            # automatic_payment_methods={
-            #     'enabled': True,
-            # },
-            payment_method_types=[
-                "card",
-            ],
+            automatic_payment_methods={
+                'enabled': True,
+            },
+            # payment_method_types=[
+            #     "card",
+            # ],
         )
         return intent
 

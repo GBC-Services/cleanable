@@ -1,7 +1,7 @@
 // This is a public sample test API key.
 // Don’t submit any personally identifiable information in requests made with this key.
 // Sign in to see your own test API key embedded in code samples.
-const stripe = Stripe("pk_test_Dt4ZBItXSZT1EzmOd8yCxonL");
+const stripe = Stripe($("#stripe_public_key").val());
 let elements;
 
 initialize();
@@ -15,7 +15,7 @@ let emailAddress = '';
 // Fetches a payment intent and captures the client secret
 
 async function initialize() {
-    const clientSecret = $("#client_secret").val();
+    const clientSecret = $("#payment_intent_secret").val();
     const appearance = {
         theme: 'stripe',
     };
