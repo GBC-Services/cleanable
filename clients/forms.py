@@ -70,5 +70,5 @@ class PlaceForm(forms.ModelForm):
     def clean_zip_code(self):
         city = self.cleaned_data.get("city")
         zip_code = self.cleaned_data.get("zip_code")
-        zip_code, _ = ZipCode.objects.get_or_create(city=city, value=zip_code.upper())
+        zip_code, _ = ZipCode.objects.get_or_create(value=zip_code.upper())
         return zip_code
