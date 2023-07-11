@@ -79,7 +79,7 @@
                         </tr>
                         <tr>
                             <td>Discount</td>
-                            <td>{{ object.discount }}, ({{ object.discount_code|default_if_none:"no code" }})</td>
+                            <td>{{ object.discount_amount }} ({{ object.discount_code|default_if_none:"no code" }})</td>
                         </tr>
                     {% endif %}
                     <tr>
@@ -94,7 +94,7 @@
         <div class="text-center mt-3">
             <button onclick="history.back()" class="btn btn-secondary">Back</button>
 
-            {% if object.user == request.user %}
+            {% if object.client == request.user %}
                 <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary">Update</a>
             {% endif %}
         </div>

@@ -20,7 +20,7 @@
                             {% else %}
                                 <ul class="list-group list-group-flush">
                                     {% for place in places %}
-                                        <li class="list-group-item"><b>{{ place.name }},</b> {{ place.get_full_address }}
+                                        <li class="list-group-item">{{ place.get_full_address }}
                                             <a href="{% url 'place' place.uuid %}">View</a>
                                         </li>
                                     {% endfor %}

@@ -43,9 +43,6 @@ class Place(BaseDictModel):
         return f"{self.get_full_address()}"
 
     def save(self, *args, **kwargs):
-        if not self.name:
-            self.name = self.address
-
         if not self.country:
             self.country, _ = Country.objects.get_or_create(name="USA")
         if self.zip_code:

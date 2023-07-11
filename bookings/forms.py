@@ -64,7 +64,7 @@ class BookingForm(BookingDateTimeFormMixin, forms.ModelForm):
             fees_info,
             Div(
                 HTML('<button onclick="history.back()" class="btn btn-secondary me-1">Back</button>'),
-                Submit('submit', 'Submit', css_class="btn btn-primary"),
+                Submit('submit', 'Save', css_class="btn btn-primary"),
                 css_class="text-center"
             )
         )
