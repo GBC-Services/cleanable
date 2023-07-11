@@ -271,4 +271,35 @@ STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY", default="")
 STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="")
 
 if IS_ON_PROD:
-    from . import logging_settings
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'formatters': {
+            'verbose': {
+                'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+            },
+        },
+        'handlers': {
+            'console_notset': {
+                'level': 'NOTSET',
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose'
+            },
+            'console_info': {
+                'level': 'INFO',
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose'
+            },
+        },
+        'loggers': {
+            '': {
+                'handlers': ['console_notset'],
+                'level': 'NOTSET',
+            },
+            'django': {
+                'handlers': ['console_info'],
+                'propagate': False,
+                'level': 'ERROR'
+            },
+        }
+    }
