@@ -79,7 +79,7 @@ class PlaceCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAcces
     def form_valid(self, form):
         object = form.save(commit=False)
         if not self.get_object():
-            object.user = self.request.user
+            object.client = self.request.user
         object.save()
         return HttpResponseRedirect(self.get_success_url())
 

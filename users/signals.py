@@ -18,9 +18,7 @@ def user_post_save(sender, instance, created, **kwargs):
 
 @receiver(user_logged_in)
 def login_logger(request, user, **kwargs):
-    print("{} logged in with {}".format(user.email, request))
     if not request.session.session_key:
-        print("recreating new session key")
         request.session.create()
     session_id = request.session.session_key
     email = user.email

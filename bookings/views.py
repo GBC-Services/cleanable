@@ -381,7 +381,8 @@ class PublicBookingAddressView(generic.CreateView, UserSessionMixin, NonAuthBook
                                        apartment_nmb=cleaned_data.get("apartment_nmb"),
                                        state=cleaned_data.get("state"),
                                        city=cleaned_data.get("city"),
-                                       zip_code=cleaned_data.get("zip_code"))
+                                       zip_code=cleaned_data.get("zip_code"),
+                                       client=None)
         except Place.DoesNotExist:
             object = form.save(commit=False)
             object.area_size = booking.area_size

@@ -7,26 +7,31 @@ LOGGING = {
         },
     },
     'handlers': {
-        'console': {
+        'console_notset': {
             'level': 'NOTSET',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose'
         },
-        'console1': {
+        'console_info': {
             'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+        'console_error': {
+            'level': 'ERROR',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose'
         }
     },
     'loggers': {
         '': {
-            'handlers': ['console'],
+            'handlers': ['console_notset'],
             'level': 'NOTSET',
         },
         'django.request': {
-            'handlers': ['console1'],
+            'handlers': ['console_error'],
             'propagate': False,
-            'level': 'INFO'
+            'level': 'ERROR'
         }
     }
 }
