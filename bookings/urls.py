@@ -25,6 +25,6 @@ urlpatterns = [
     path('booking-process/enter-address', views.PublicBookingAddressView.as_view(), name='public_booking_step_4'),
     path('booking-process/checkout', views.PublicBookingCheckoutView.as_view(), name='public_booking_step_5'),
 
-    path('services-for-property-type', views.ServicesForPropertyTypeView.as_view(),
-         name='services_for_property_type'),
+    path('services-for-property-type', views.ServicesForPropertyTypeView.as_view(), name='services_for_property_type'),
+
 ]
