@@ -259,7 +259,7 @@ class PublicBookingZipCodeView(generic.TemplateView, generic.FormView, UserSessi
                 url = f"{self.get_success_url()}?zip_code={zip_code}"
                 return HttpResponseRedirect(url)
             else:
-                form.add_error("zip_code", "This area is out of the coverage at this moment, but will be covered soon")
+                form.add_error("zip_code", "This area is out of the coverage at this moment, but it will be covered soon")
                 return self.form_invalid(form)
         except RegionZipCode.DoesNotExist:
             form.add_error("zip_code", "This area is out of the coverage at this moment.")
