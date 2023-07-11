@@ -75,9 +75,7 @@ class BookingsMixin:
             else:
                 return self.model.objects.none()
         else:
-            print("else")
             if not user.is_authenticated and not getattr(self, "user_session", None) is None:
-                print("in")
                 return qs.filter(client__isnull=True, user_session=self.user_session)
             else:
                 return self.model.objects.none()

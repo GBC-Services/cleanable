@@ -34,7 +34,7 @@
                                 </td>
                                 <td>{{ place.name|default_if_none:"" }}</td>
                                 <td>{{ place.get_full_address }}</td>
-                                <td>{{ place.comments|truncatewords:50 }}</td>
+                                <td>{{ place.comments|linebreaks|truncatewords:50 }}</td>
                                 <td>
                                     <a href="{% url 'place_update' place.uuid %}">Update</a>
                                     <a href="{% url 'place' place.uuid %}">View</a>

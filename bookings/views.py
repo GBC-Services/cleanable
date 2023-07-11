@@ -95,13 +95,11 @@ class BookingCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAcc
         user = self.request.user
 
         current_object = self.get_object()
-        print(11)
         object = form.save(commit=False)
         object.client = user
         object.place_type = self.place.type
         object.place = self.place
         object.save()
-        print(22)
 
         """Saving services"""
         services = form.cleaned_data.get("services")
