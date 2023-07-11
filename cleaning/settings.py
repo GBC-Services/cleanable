@@ -267,7 +267,8 @@ TIME_SLOTS = env.list("TIME_SLOTS", default=["8:00-13:00", "13:00-18:00"])
 
 MAPBOX_TOKEN = env.str("MAPBOX_TOKEN", default="")
 
-STRIPE_API_KEY = env.str("STRIPE_API_KEY", default="")
+STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY", default="")
+STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="")
 
 if IS_ON_PROD:
     from . import logging_settings

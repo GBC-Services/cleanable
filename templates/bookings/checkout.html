@@ -41,7 +41,8 @@
                     </button>
                     <div id="payment-message" class="hidden"></div>
                 </form>
-                <input id="client_secret" class="d-none" value="{{ client_secret }}"/>
+                <input id="stripe_public_key" class="d-none" value="{{ stripe_public_key }}">
+                <input id="payment_intent_secret" class="d-none" value="{{ payment_intent_secret }}"/>
                 <input id="successful_payment_url" class="d-none" value="{{ successful_payment_url }}"/>
             </div>
         </div>

@@ -15,7 +15,7 @@ import stripe
 from cleanings.models import Cleaning
 
 
-stripe.api_key = settings.STRIPE_API_KEY
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class DiscountCode(BaseModel):
