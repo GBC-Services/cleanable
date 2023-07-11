@@ -21,7 +21,7 @@
                 <td>{{ booking.get_service_names_as_string }}</td>
                 <td>{{ booking.total_fee_final }}</td>
                 <td>{{ booking.get_status_display }}</td>
-                <th>{% if not booking.is_paid %}
+                <td>{% if not booking.is_paid %}
                         <a href="{% url 'checkout' booking.uuid %}" class="btn btn-primary">Pay</a>
                     {% else %}
                         Paid
@@ -29,7 +29,7 @@
                             <i class="fa fa-file" aria-hidden="true"></i>
                         </a>
                     {% endif %}
-                </th>
+                </td>
                 <td>
                     {% if booking.status == booking.STATUS_NEW %}
                         <a href="{% url 'booking_update' booking.uuid %}">Update</a>

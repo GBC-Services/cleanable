@@ -35,6 +35,9 @@ class BookingsView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, Bookings
     template_name = "bookings/bookings.html"
     model = Booking
 
+    def get_queryset(self):
+        return super().get_queryset().filter(place__isnull=False)
+
 
 class BookingView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, BookingsMixin, generic.DetailView):
     model = Booking
@@ -218,7 +221,7 @@ class SuccessfulPaymentView(ClientOrNotAuthAccessMixin, BookingsMixin, generic.D
         return super().get(*args, **kwargs)
 
 
-class StripeReceiptView(LoginRequiredMixin, ClientAccessMixin, BookingsMixin, generic.DetailView):
+class StripeReceiptView(LoginRequiredMixin, GeneralAdminOrClientAccessMixin, BookingsMixin, generic.DetailView):
     model = Booking
     slug_field = "uuid"
     slug_url_kwarg = "uuid"

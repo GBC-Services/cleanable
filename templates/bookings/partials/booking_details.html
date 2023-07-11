@@ -52,9 +52,26 @@
         <div>
             <ul class="list-unstyled">
                 <li><b>Created: </b>{{ object.created|date:"m/d/Y H:i:s" }}</li>
-                <li><b>Cleaning time: </b> {{ object.get_scheduled_dt_range }}</li>
+                <li><b>Payment: </b>
+                    {% if object.is_paid %}
+                        Yes, <a href="{% url 'stripe_receipt' object.uuid %}">
+                            invoice
+                        </a>
+                    {% else %}
+                        {{ object.get_payment_status }}
+                    {% endif %}
+                </li>
+
+                <li class="mt-3"><b>Cleaning time: </b> {{ object.get_scheduled_dt_range }}</li>
                 <li><b>Place: </b>{{ object.place }}, {{ object.place.get_full_address }}</li>
-                <li class="mt-3"><b>Comments: </b>{{ object.comments|linebreaks }}</li>
+
+                <li class="mt-3"><b>Comments: </b>
+                    {% if object.comments %}
+                        {{ object.comments|linebreaks }}
+                    {% else %}
+                        no comments
+                    {% endif %}
+                </li>
             </ul>
 
             <div class="mt-3 table-responsive">

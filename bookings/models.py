@@ -238,6 +238,9 @@ class Booking(BaseModel):
     def get_encoded_stripe_email(self):
         return urllib.parse.quote(self.stripe_email)
 
+    def get_payment_status(self):
+        return "Yes" if self.is_paid else "No"
+
 
 class BookingStatusChange(BaseModel):
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE)
