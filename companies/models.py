@@ -43,9 +43,7 @@ class Company(BaseDictModel):
         return self.user_set.filter(role=User.ROLE_CLEANER)
 
     def get_company_cleaner_invites(self):
-        print(self.name)
-        print(self.companycleanerinvite_set.filter(is_active=True).order_by("-id"))
-        return self.companycleanerinvite_set.filter(is_active=True).order_by("-id")
+        return self.companycleanerinvite_set.all().order_by("-id")
 
     def get_cleanings(self, as_cleaning_ids=False):
         cleanings = self.cleaning_set.all()

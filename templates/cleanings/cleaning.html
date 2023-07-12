@@ -13,7 +13,9 @@
                 </ul>
                 <ul class="list-unstyled">
                     <li><b>Type: </b>{{ object.booking.place.get_type_display }}</li>
-                    <li><b>Address: </b> {{ object.booking.place.get_full_address }}</li>
+                    <li><b>Address: </b> {{ object.booking.place.get_full_address }}<br>
+                        <a href="{{ object.booking.place.get_google_maps_url }}" target="_blank">View on maps</a>
+                    </li>
                     <li><b>Notes: </b>{{ object.booking.place.comments }}</li>
                 </ul>
             </div>

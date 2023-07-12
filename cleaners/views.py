@@ -36,7 +36,7 @@ class CleanerInviteCreateView(LoginRequiredMixin, ManagerAccessMixin, generic.Cr
         object = form.save(commit=False)
         object.company = self.request.user.company
         object.save()
-        return HttpResponseRedirect(reverse_lazy("cleaners"))
+        return HttpResponseRedirect(reverse("company_cleaners"))
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
