@@ -1,5 +1,14 @@
-<div class="d-flex {% if request.user == message.user %}justify-content-end{% else %}justify-content-start{% endif %}">
-    <div class="w-50 alert {% if request.user == message.user %}alert-info{% else %}alert-secondary{% endif %}">
-        {{ message.text }}
+{% if request.user.is_general_admin %}
+    <div class="d-flex {% if request.user == message.user %}justify-content-end{% else %}justify-content-start{% endif %}">
+        <div class="w-50 alert {% if request.user == message.user %}alert-info{% else %}alert-secondary{% endif %}">
+            {{ message.text }}
+        </div>
     </div>
-</div>
+{% else %}
+    <div class="d-flex {% if request.user == message.user %}justify-content-end{% else %}justify-content-start{% endif %}">
+        <div class="w-50 alert {% if request.user == message.user %}alert-info{% else %}alert-secondary{% endif %}">
+            <div class="small-text">{{ message.user.get_full_name }}</div>
+            {{ message.text }}
+        </div>
+    </div>
+{% endif %}

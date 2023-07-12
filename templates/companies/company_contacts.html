@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block header_stuff %}
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <div class="h3 text-center">{ object.name }}</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <b>Company phone: {{ company.phone|default_if_none:"" }}</b>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for manager in object.get_managers %}
+                                        <tr>
+                                            <td>{{ manager.get_full_name }}</td>
+                                            <td>{{ manager.phone }}</td>
+                                            <td>{{ manager.email }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block js_stuff %}
+{% endblock js_stuff %}

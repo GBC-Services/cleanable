@@ -6,10 +6,12 @@ from services.models import Service, ServiceFee, ServiceFeesSnapshot
 from locations.models import Region, ZipCode
 from django.utils import timezone
 from users.models import User
+from phonenumber_field.modelfields import PhoneNumberField
 
 
 class Company(BaseDictModel):
     name = models.CharField(max_length=128, blank=True, null=True, default=None, unique=True)
+    phone = PhoneNumberField(blank=True, null=True, default=None)
 
     # ToDo: to think later if zip code Charfield is OK or it should be a ForeignKey to a ZipCode model"""
     zip_code = models.ForeignKey(ZipCode, blank=True, null=True, default=None, on_delete=models.CASCADE)
@@ -26,7 +28,7 @@ class Company(BaseDictModel):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse("company_update", kwargs=dict(uuid=self.uuid))
+        return reverse("company_update")
 
     def get_is_user_manager(self, user):
         return user.company == self and user.is_manager and user.is_active
@@ -34,11 +36,14 @@ class Company(BaseDictModel):
     def get_is_user_cleaner(self, user):
         return user.company == self and user.is_cleaner and user.is_active
 
+    def get_managers(self):
+        return self.user_set.filter(role=User.ROLE_MANAGER)
+
     def get_cleaners(self):
-        return self.user_set.filter(company=self, role=User.ROLE_CLEANER)
+        return self.user_set.filter(role=User.ROLE_CLEANER)
 
     def get_company_cleaner_invites(self):
-        return self.companycleanerinvite_set.filter(is_active=True)
+        return self.companycleanerinvite_set.all().order_by("-id")
 
     def get_cleanings(self, as_cleaning_ids=False):
         cleanings = self.cleaning_set.all()

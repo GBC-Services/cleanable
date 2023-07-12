@@ -17,6 +17,11 @@
                         {{ object.name }}
                     {% endif %}
                 </div>
+                {% if request.user.is_manager %}
+                    <div class="text-center">
+                        <a href="{% url 'company_update' %}">Update</a>
+                    </div>
+                {% endif %}
                 {% if request.user.company == object %}
                     <div class="h5 text-start">Hi {{ request.user.first_name }}! Nice to see you here!</div>
                 {% endif %}

@@ -43,8 +43,8 @@
                            href="{% url 'cleanings' %}">Cleanings</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'cleaners' in request.path %}active{% endif %}"
-                           href="{% url 'cleaners' %}">Cleaners</a>
+                        <a class="nav-link {% if 'company-cleaners' in request.path %}active{% endif %}"
+                           href="{% url 'company_cleaners' %}">Cleaners</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if 'company-service-fees' in request.path %}active{% endif %}"

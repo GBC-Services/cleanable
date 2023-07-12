@@ -19,6 +19,7 @@ def cleaning_post_save(sender, instance, created, **kwargs):
         elif instance.status == instance.STATUS_CANCELLED_BY_SERVICE:
             instance.booking.status = instance.booking.STATUS_CANCELLED_BY_SERVICE
             instance.booking.save(force_update=True)
+
         ProcessNotification().send_if_needed(cleaning=instance)
 
 

@@ -3,7 +3,6 @@ from . import views
 
 
 urlpatterns = [
-    path('cleaners', views.CleanersView.as_view(), name='cleaners'),
     path('my-dashboard', views.CleanerView.as_view(), name='cleaner'),
     path('cleaner/<uuid>', views.CleanerView.as_view(), name='any_cleaner'),
     path('cleaner-invite/create', views.CleanerInviteCreateView.as_view(), name='cleaner_invite_create'),

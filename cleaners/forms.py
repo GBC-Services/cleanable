@@ -21,7 +21,7 @@ class CompanyCleanerInviteForm(forms.ModelForm):
         self.helper = FormHelper(self)
         self.helper.layout.append(
             Div(
-                HTML(f"<a href='{reverse('cleaners')}' class='btn btn-secondary me-1'>Back</a>"),
+                HTML(f"<a href='{reverse('company_cleaners')}' class='btn btn-secondary me-1'>Back</a>"),
                 Submit('submit', 'Save', css_class="btn btn-primary text-uppercase"),
                 css_class="text-center"
             )

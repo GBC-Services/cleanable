@@ -23,3 +23,12 @@
 </form>
 
 {% endblock %}
+
+{% block js_stuff %}
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.8/jquery.inputmask.min.js" integrity="sha512-efAcjYoYT0sXxQRtxGY37CKYmqsFVOIwMApaEbrxJr4RwqVVGw8o+Lfh/+59TU07+suZn1BWq4fDl5fdgyCNkw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        $(document).ready(function (){
+            $("#id_phone").inputmask({mask: "+1 (999) 999-9999", greedy: false});
+        })
+    </script>
+{% endblock js_stuff %}

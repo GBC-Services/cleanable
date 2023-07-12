@@ -34,7 +34,11 @@
             <div class="col-lg-12">
                 {% include "cleaners/partials/schedule_table.html" %}
                 <div class="mt-3 text-center">
-                    <a href="{% url 'cleaner' %}" class="btn btn-secondary me-1">Back</a>
+                    {% if request.user.is_cleaner %}
+                        <a href="{% url 'cleaner' %}" class="btn btn-secondary me-1">Back</a>
+                    {% else %}
+                        <a href="{% url 'any_cleaner' object.uuid %}" class="btn btn-secondary me-1">Back</a>
+                    {% endif %}
                     {% if object == request.user %}
                         <a href="{% url 'manage_cleaner_schedule' %}?period={{ period.uuid }}"
                            class="btn btn-primary">Manage Schedule</a>

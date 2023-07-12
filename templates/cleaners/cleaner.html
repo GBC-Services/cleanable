@@ -16,9 +16,12 @@
                     {% endif %}
                 </div>
                 {% if request.user.is_cleaner %}
-                    <div class="h5">Your company is <b>{{ request.user.company.name }}</b></div>
-                {% else %}
-                    <div class="h5"><b>Company: </b> {{ request.user.company.name }}</div>
+                    <div class="h5">Your company is <b>{{ object.company.name }}</b></div>
+                {% elif request.user.is_general_admin %}
+                    <div class="h5"><b>Company: </b> {{ object.company.name }}</div>
+                {% endif %}
+                {% if request.user.is_manager %}
+                    <div class="h5"><b>Cleaner: </b> {{ object.get_full_name }}</div>
                 {% endif %}
             </div>
         </div>
@@ -63,7 +66,7 @@
         <div class="row mt-5">
             <div class="col-lg-12">
                 <div class="h3 text-center">{% if request.user.is_cleaner %}Your {% endif %}Cleanings for Today</div>
-                {% with self.object.get_cleanings_for_today as cleanings %}
+                {% with object.get_cleanings_for_today as cleanings %}
                     {% include "cleanings/partials/cleanings_table_for_cleaner.html" %}
                 {% endwith %}
                 <div class="text-center mt-3">
