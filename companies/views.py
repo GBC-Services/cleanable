@@ -51,23 +51,40 @@ class CompanyView(LoginRequiredMixin, GeneralAdminOrManagerAccessMixin, Companie
         return forms_by_dates
 
 
-class CompanyCreateView(LoginRequiredMixin, GeneralAdminAccessMixin, CompaniesMixin,
-                        generic.CreateView):
-    template_name = "companies/company_create_update.html"
-    model = Company
-    form_class = CompanyCreateForm
-    success_message = "Done!"
-    success_url = reverse_lazy("companies")
+# class CompanyCreateView(LoginRequiredMixin, GeneralAdminAccessMixin, CompaniesMixin,
+#                         generic.CreateView):
+#     template_name = "companies/company_create_update.html"
+#     model = Company
+#     form_class = CompanyCreateForm
+#     success_message = "Done!"
+#     success_url = reverse_lazy("companies")
 
 
-class CompanyUpdateView(LoginRequiredMixin, ManagerAccessMixin, CompaniesMixin, generic.UpdateView):
+class CompanyUpdateView(LoginRequiredMixin, GeneralAdminOrManagerAccessMixin, CompaniesMixin, generic.UpdateView):
     template_name = "companies/company_create_update.html"
     model = Company
     form_class = CompanyForm
     slug_field = "uuid"
     slug_url_kwarg = "uuid"
     success_message = "Done!"
-    success_url = reverse_lazy("my_company")
+
+    def get_success_url(self):
+        if self.request.user.is_general_admin:
+            return reverse("companies")
+        else:
+            return reverse("company")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request"] = self.request
+        return kwargs
+
+
+class CompanyContactsView(LoginRequiredMixin, GeneralAdminAccessMixin, CompaniesMixin, generic.DetailView):
+    template_name = "companies/company_contacts.html"
+    model = Company
+    slug_field = "uuid"
+    slug_url_kwarg = "uuid"
 
 
 class CompanyServiceFeesView(LoginRequiredMixin, GeneralAdminOrManagerAccessMixin, CompaniesMixin,
@@ -96,7 +113,7 @@ class AcceptCompanyFeesView(LoginRequiredMixin, ManagerAccessMixin, generic.Deta
             messages.success(self.request, "Done!")
         else:
             messages.error(self.request, "Error! It has been already accepted before!")
-        return HttpResponseRedirect(reverse("my_company"))
+        return HttpResponseRedirect(reverse("company"))
 
 
 class CompanyCleanersView(LoginRequiredMixin, ManagerAccessMixin, CompaniesMixin,

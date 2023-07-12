@@ -11,23 +11,9 @@ from users.models import User
 from .forms import CompanyCleanerInviteForm, CleanerScheduleForm
 from utils.mixins.access_mixins import (GeneralAdminOrManagerOrCleanerAccessMixin,
                                         ManagerOrCleanerAccessMixin, ManagerAccessMixin, CleanerAccessMixin)
-from utils.mixins.queryset_mixins import CleanerMixin
-from .mixins import ScheduleMixin
+from utils.mixins.queryset_mixins import CleanerMixin, ScheduleMixin
 from django.contrib import messages
 from django.db import transaction
-
-
-class CleanersView(LoginRequiredMixin, ManagerAccessMixin, generic.TemplateView):
-    template_name = "cleaners/cleaners.html"
-    model = CompanyCleanerInvite
-
-    def get_context_data(self, **kwargs):
-        context_data = super().get_context_data()
-        context_data["company_cleaner_invites"] = self.request.user.company.get_company_cleaner_invites()
-        return context_data
-
-    def get_queryset(self):
-        return super().get_queryset().filter(company=self.request.user.company)
 
 
 class CleanerView(LoginRequiredMixin, ManagerOrCleanerAccessMixin, CleanerMixin, generic.DetailView):
@@ -37,8 +23,8 @@ class CleanerView(LoginRequiredMixin, ManagerOrCleanerAccessMixin, CleanerMixin,
     slug_url_kwarg = "uuid"
 
     def get_context_data(self, **kwargs):
-        context_data = super().get_context_data(**kwargs)
-        return context_data
+        context = super().get_context_data(**kwargs)
+        return context
 
 
 class CleanerInviteCreateView(LoginRequiredMixin, ManagerAccessMixin, generic.CreateView):
@@ -77,19 +63,12 @@ class CleanerDeleteView(LoginRequiredMixin, ManagerAccessMixin, generic.DetailVi
         return HttpResponseRedirect(reverse("cleaners"))
 
 
-class CleanerScheduleView(LoginRequiredMixin, CleanerAccessMixin, ScheduleMixin, generic.DetailView):
+class CleanerScheduleView(LoginRequiredMixin, ManagerOrCleanerAccessMixin, ScheduleMixin, generic.DetailView):
     template_name = "cleaners/cleaner_schedule.html"
     model = User
     slug_field = "uuid"
     slug_url_kwarg = "uuid"
     next_week = False
-
-    def get_object(self, queryset=None):
-        user = self.request.user
-        if user.role == user.ROLE_CLEANER:
-            return user
-        else:
-            return super().get_object(queryset=queryset)
 
 
 class ManageCleanerScheduleView(LoginRequiredMixin, CleanerAccessMixin, ScheduleMixin, generic.DetailView):

@@ -33,7 +33,9 @@
                     <li class="mb-3"><b>Comments from Client: </b>{{ object.booking.comments|default_if_none:""|linebreaks }}</li>
                     <li class="mb-3"><b>Comments from Manager: </b>{{ object.manager_comments|default_if_none:""|linebreaks }}</li>
                     <li class="mb-3"><b>Comments from Cleaner: </b>{{ object.cleaner_comments|default_if_none:""|linebreaks}}
-                        {% if request.user.is_cleaner %}<a href="{% url 'cleaner_comment' object.uuid %}">Edit</a>{% endif %}
+                        {% if request.user.is_cleaner %}
+                            <a href="{% url 'cleaner_comment' object.uuid %}">Edit</a>
+                        {% endif %}
                     </li>
                 </ul>
             </div>
@@ -54,18 +56,20 @@
 
                     </ul>
                 </div>
-                <div>
-                    {% if object.status == object.STATUS_NOT_STARTED %}
-                        <a href="{% url 'set_next_status_for_cleaning' object.uuid %}" class="btn btn-primary set-status-btn">Mark "On the Way"</a>
-                    {% elif object.status == object.STATUS_CLEANER_IS_ON_THE_WAY %}
-                        <a href="{% url 'set_next_status_for_cleaning' object.uuid %}" class="btn btn-primary me-1 set-status-btn">Mark "Started"</a>
-                    {% elif object.status == object.STATUS_STARTED %}
-                        <a href="{% url 'set_next_status_for_cleaning' object.uuid %}" class="btn btn-primary me-1 set-status-btn">Mark "Completed"</a>
-                    {% endif %}
-                    {% if object.status == object.STATUS_CLEANER_IS_ON_THE_WAY or object.status == object.STATUS_STARTED %}
-                        <a href="{% url 'report_issue_for_cleaning' object.uuid %}" class="btn btn-danger">Report Issue</a>
-                    {% endif %}
-                </div>
+                {% if request.user.is_cleaner %}
+                    <div>
+                        {% if object.status == object.STATUS_NOT_STARTED %}
+                            <a href="{% url 'set_next_status_for_cleaning' object.uuid %}" class="btn btn-primary set-status-btn">Mark "On the Way"</a>
+                        {% elif object.status == object.STATUS_CLEANER_IS_ON_THE_WAY %}
+                            <a href="{% url 'set_next_status_for_cleaning' object.uuid %}" class="btn btn-primary me-1 set-status-btn">Mark "Started"</a>
+                        {% elif object.status == object.STATUS_STARTED %}
+                            <a href="{% url 'set_next_status_for_cleaning' object.uuid %}" class="btn btn-primary me-1 set-status-btn">Mark "Completed"</a>
+                        {% endif %}
+                        {% if object.status == object.STATUS_CLEANER_IS_ON_THE_WAY or object.status == object.STATUS_STARTED %}
+                            <a href="{% url 'report_issue_for_cleaning' object.uuid %}" class="btn btn-danger">Report Issue</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
         </div>
         <div class="row">

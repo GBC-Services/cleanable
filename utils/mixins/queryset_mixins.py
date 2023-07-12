@@ -1,4 +1,6 @@
 from bookings.models import Booking
+from django.conf import settings
+from cleaners.models import SchedulePeriod
 
 
 class CleaningsMixin:
@@ -101,12 +103,59 @@ class CleanerMixin:
         qs = super().get_queryset()
         if user.is_general_admin:
             return qs
-        else:
+        elif user.is_manager:
             return qs.filter(company=user.company)
+        elif user.is_cleaner:
+            return qs.filter(id=user.id)
+        else:
+            return self.model.objects.none()
 
     def get_object(self, queryset=None):
         user = self.request.user
         if user.is_cleaner:
             return user
-        elif user.is_general_admin:
+        elif user.is_general_admin or user.is_manager:
             return super().get_object(queryset=queryset)
+
+
+class ScheduleMixin:
+    next_week = False
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if user.is_general_admin:
+            return qs
+        elif user.role == user.ROLE_MANAGER:
+            return qs.filter(company=user.company)
+        elif user.role == user.ROLE_CLEANER:
+            return qs.filter(id=user.id)
+        else:
+            return self.model.objects.none()
+
+    def get_object(self, queryset=None):
+        user = self.request.user
+        if user.role == user.ROLE_CLEANER:
+            return user
+        else:
+            return super().get_object(queryset=queryset)
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        object = self.get_object()
+        period = self.get_period()
+        context["period"] = period
+        context["time_slots"] = settings.TIME_SLOTS
+        context["days"] = period.get_or_create_cleaner_schedule_data(object)
+        return context
+
+    def get_period(self):
+        period_uuid = self.request.GET.get("period")
+        if period_uuid:
+            """Get any existing schedule period"""
+            schedule_period = SchedulePeriod.objects.get(uuid=period_uuid)
+        else:
+            """Get or create a schedule period for the current or for the next week only"""
+            schedule_period = SchedulePeriod().get_or_create_period(next_week=self.next_week)
+        return schedule_period

@@ -1,3 +1,4 @@
+<div>a {{ object.get_company_cleaner_invites|length }} b</div>
 <div class="table-responsive mt-3">
     <table class="table table-bordered table-striped">
         <thead>
@@ -8,7 +9,7 @@
         </tr>
         </thead>
         <tbody>
-        {% for item in company_cleaner_invites %}
+        {% for item in object.get_company_cleaner_invites %}
             {% with item.user as user %}
                 <tr>
                     <td>

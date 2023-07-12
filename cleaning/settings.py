@@ -270,6 +270,18 @@ MAPBOX_TOKEN = env.str("MAPBOX_TOKEN", default="")
 STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY", default="")
 STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="")
 
+# # Your Account SID from twilio.com/console
+# account_sid = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+#
+# # Your Auth Token from twilio.com/console
+# auth_token = "your_auth_token"
+TWILIO_ACCOUNT_SID = env.str("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = env.str("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_FROM = env.str("TWILIO_PHONE_FROM")
+
+# 1 hour
+DUPLICATED_NOTIFICATION_COOLOFF_SECONDS = env.int("DUPLICATED_NOTIFICATION_COOLOFF_SECONDS", default=60*60)
+
 if IS_ON_PROD:
     LOGGING = {
         'version': 1,

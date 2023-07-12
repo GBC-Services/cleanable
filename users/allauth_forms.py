@@ -12,6 +12,7 @@ from allauth.account.adapter import get_adapter
 from allauth.account.utils import setup_user_email
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
+from phonenumber_field.formfields import PhoneNumberField
 from captcha.fields import ReCaptchaField
 from django.conf import settings
 from django.utils.safestring import mark_safe
@@ -72,6 +73,7 @@ class CustomSignupForm(SignupForm):
     password1 = forms.CharField(label=False,
                                 widget=forms.PasswordInput(attrs={"placeholder": _("Password")}))
     password2 = forms.CharField(label=False, widget=forms.PasswordInput(attrs={"placeholder": _("Password again")}))
+    phone = PhoneNumberField(required=True)
     company = forms.CharField()
     zip_code = forms.CharField(max_length=12)
     is_accepted_tos = forms.BooleanField(required=True, label=mark_safe(f'I accept '
@@ -84,15 +86,12 @@ class CustomSignupForm(SignupForm):
                                             label="Receive email updates about our service "
                                                   "and other related products (no third party emails)")
 
-    field_order = ["first_name", "last_name", "email", "password1", "password2", "company", "zip_code",
+    field_order = ["first_name", "last_name", "email", "password1", "password2", "company", "zip_code", "phone",
                    "is_accepted_tos", "is_accepted_pp", "is_accepted_emails",]
 
     def __init__(self, *args, **kwargs):
-        print(kwargs)
         self.role = kwargs.pop("role") if "role" in kwargs else None
         self.invite_id = kwargs.pop("invite_id") if "invite_id" in kwargs else None
-        print(kwargs)
-        print("===")
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_tag = False
@@ -132,6 +131,7 @@ class CustomSignupForm(SignupForm):
                     ),
                 css_class="row"
             ),
+            Field("phone"),
             Field("company"),
             Field("zip_code"),
             Field("is_accepted_tos"),

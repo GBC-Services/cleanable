@@ -39,7 +39,12 @@
                                     <td>{{ item.email }}</td>
                                     <td>{{ item.phone|default_if_none:"" }}</td>
                                     <td>{{ item.date_joined|date:"m/d/Y" }}</td>
-                                    <td><a href="{% url 'any_cleaner' item.uuid %}">View</a></td>
+                                    <td>
+                                        <a href="{% url 'any_cleaner' item.uuid %}">View</a>
+                                        {% if request.user.is_manager %}
+                                            <a href="{% url 'cleaner_schedule' item.uuid %}">Schedule</a>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% endfor %}
                             </tbody>

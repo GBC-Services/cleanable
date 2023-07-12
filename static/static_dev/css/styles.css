@@ -130,3 +130,7 @@ div.dataTables_wrapper div.dataTables_filter{
 .table-service-prices th{
     text-transform: uppercase;
 }
+
+.small-text{
+    font-size: 0.7em;
+}
