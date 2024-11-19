@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load general %}
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-center">Support Tickets</div>
+                <div class="mt-3">
+                    <div class="table-responsive">
+                        <div class="text-center">
+                            <a href="{% url 'support_ticket_create' %}" class="btn btn-primary">Create</a>
+                        </div>
+                        <table width="100%" class="table table-responsive table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Booking</th>
+                                    <th>Category</th>
+                                    <th>Subject</th>
+                                    <th>Assigned to</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in object_list %}
+                                    <tr>
+                                        <td>{{ item.created|date:"m/d/Y" }}</td>
+                                        <td>{{ item.booking }}</td>
+                                        <td>{{ item.category }}</td>
+                                        <td>{{ item.subject }}</td>
+                                        <td>{{ item.assigned_to|default_if_none:"" }}</td>
+                                        <td>{{ item.get_status_display }}</td>
+                                        <td>
+                                            <div>
+                                                <a href="{% url 'support_ticket' item.uuid %}" class="btn btn-primary">
+                                                    {% if request.user.is_support_agent and not item.assigned_to %}Assign to Me{% else %}View{% endif %}
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js_stuff %}
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $("table").DataTable({
+                order: [],
+            })
+        })
+    </script>
+{% endblock js_stuff %}

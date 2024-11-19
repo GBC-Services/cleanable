@@ -1,0 +1,54 @@
+from django.contrib import admin
+from .forms import UserCreationForm, UserChangeForm
+from .models import User
+from django.contrib.auth.admin import UserAdmin
+from django.utils.translation import gettext_lazy as _
+
+from django.contrib import admin
+from .models import User, UserSession, VerificationDocumentType, UserVerificationDocument
+
+
+class CustomUserAdmin(UserAdmin):
+    add_form = UserCreationForm
+    form = UserChangeForm
+    model = User
+
+    list_display = ("email", "role", "company", "is_staff", "is_active", "uuid",
+                    "is_contact_by_sms", "is_contact_by_email")
+    list_filter = ("role", "is_staff", "is_active",)
+    search_fields = ("email", "first_name", "last_name", "uuid",)
+    ordering = ("email",)
+
+    fieldsets = (
+        (None, {"fields": ("email", "password")}),
+        (_("Personal info"), {"fields": ("first_name", "last_name",)}),
+        (_("Permissions"), {
+            "fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions",),
+        }),
+        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+        (_("Extra fields"), {"fields": ("role", "company", "phone", "is_contact_by_sms", "is_contact_by_email",
+                                        "image")}),
+    )
+    add_fieldsets = (
+        (None, {
+            "classes": ("wide",),
+            "fields": ("email", "password1", "password2", "company", "role", "phone"),
+        }),
+    )
+
+admin.site.register(User, CustomUserAdmin)
+
+
+@admin.register(UserSession)
+class UserSessionAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in UserSession._meta.fields]
+
+
+@admin.register(VerificationDocumentType)
+class VerificationDocumentTypeAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in VerificationDocumentType._meta.fields]
+
+
+@admin.register(UserVerificationDocument)
+class UserVerificationDocumentAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in UserVerificationDocument._meta.fields]

@@ -19,9 +19,10 @@ async function initialize() {
     const appearance = {
         theme: 'stripe',
     };
+    const email_address = $("#email").val();
     elements = stripe.elements({ appearance, clientSecret });
 
-    const linkAuthenticationElement = elements.create("linkAuthentication");
+    const linkAuthenticationElement = elements.create("linkAuthentication", {defaultValues: {email: email_address}});
     linkAuthenticationElement.mount("#link-authentication-element");
 
     linkAuthenticationElement.on('change', (event) => {

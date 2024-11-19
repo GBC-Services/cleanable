@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row mt-5">
+            <div class="col-lg-12">
+                <div class="h3 text-center">Special Requests</div>
+                {% with object_list as special_requests %}
+                {% with table_type="general_table" %}
+                    {% include "cleanings/partials/special_requests.html" %}
+                {% endwith %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block js_stuff %}
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("table").DataTable({
+                order: [],
+            });
+        })
+    </script>
+{% endblock %}

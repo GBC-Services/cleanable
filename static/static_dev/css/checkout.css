@@ -138,6 +138,19 @@ form, .discount-info-table{
     }
 }
 
+
+.form-check.form-check-inline{
+    flex-flow: row wrap;
+}
+
+.form-check.form-check-inline .custom-checkbox{
+    margin-right: 0.75em;
+}
+
+.form-check.form-check-inline .custom-control-label::before{
+}
+
+
 @media only screen and (max-width: 600px) {
     form{
         width: 80vw;

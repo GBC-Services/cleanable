@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-center">Verifications</div>
+                <div>
+                    <div class="table-responsive">
+                        <table width="100%" class="table table-responsive table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>DT</th>
+                                    <th>Company</th>
+                                    <th>Cleaner</th>
+                                    <th>Status</th>
+                                    <th>Document</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for verification in object_list %}
+                                    <tr>
+                                        <td>{{ verification.created|date:"m/d/Y H:i:s" }}</td>
+                                        <td>{{ verification.user.company.name }}</td>
+                                        <td>{{ verification.user }}</td>
+                                        <td>{{ verification.get_status_display }}</td>
+                                        <td>
+                                            {% if request.user.is_general_admin and verification.file %}
+                                                <a href="{{ verification.file.url }}">
+                                                    {{ verification.document_type.name }}
+                                                </a>
+                                            {% else %}
+                                                {{ verification.document_type.name }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if request.user.is_cleaner %}
+                                                {% if verification.file and verification.status != verification.STATUS_REJECTED %}
+                                                    <a href="{{ verification.file.url }}" class="btn btn-primary">View</a>
+                                                {% else %}
+                                                    <a href="{% url 'upload_document' verification.uuid %}"
+                                                       class="btn btn-success">Upload</a>
+                                                {% endif %}
+                                            {% elif request.user.is_general_admin %}
+                                                {% if verification.file and verification.status == verification.STATUS_NEW %}
+                                                    <a href="{% url 'verification_document_action' verification.uuid 'reject' %}"
+                                                       class="btn btn-sm btn-danger me-1 mb-1">
+                                                        Reject
+                                                    </a>
+                                                    <a href="{% url 'verification_document_action' verification.uuid 'approve' %}"
+                                                       class="btn btn-sm btn-primary mb-1">
+                                                        Approve
+                                                    </a>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js_stuff %}
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $("table").DataTable({
+                order: [],
+            })
+        })
+    </script>
+{% endblock js_stuff %}
