@@ -19,14 +19,23 @@
 
 
 {% block js_stuff %}
-    {% if request.user.is_general_admin %}
+
         <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
         <script>
             $(document).ready(function(){
-                $("table").DataTable({
-                    order: [],
-                })
+                {% if request.user.is_general_admin %}
+                    $("table").DataTable({
+                        order: [],
+                    })
+                {% endif %}
+
+{#                {% if object.get_is_regular %}#}
+{#                    $("#cleanings_table").DataTable({#}
+{#                        order: [],#}
+{#                    })#}
+{#                {% endif %}#}
+
             })
         </script>
-    {% endif %}
+
 {% endblock js_stuff %}

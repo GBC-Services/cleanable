@@ -93,6 +93,11 @@
 
             calculateTotalFee();
 
+            $("#id_regularity_type").on("change", function (){
+                console.log($("#regularity_option_wrapper"));
+                $("#regularity_option_wrapper").toggleClass("d-none");
+            })
+
         })
     </script>
 {% endblock js_stuff %}

@@ -1,0 +1,35 @@
+{% load crispy_forms_field %}
+
+<div class="form-group mb-3">
+    {% for widget in field.subwidgets %}
+        {% if widget.data.is_initial %}
+
+            <div class="d-flex justify-content-start align-items-end">
+            <div class="text-break me-2">
+                <a href="{{ field.value.url }}">
+                    <img class="img-fluid image-preview-in-uploading-widget" src="{{ field.value.url }}">
+                </a>
+            </div>
+            <div>
+
+                {% if not widget.data.required %}
+                    <div class="">
+                        <span class="checkbox-for-custom-file">
+                            <input type="checkbox" name="{{ widget.data.checkbox_name }}" id="{{ widget.data.checkbox_id }}" class="form-check-input"{% if field.field.disabled %} disabled{% endif %} >
+                            <label class="form-check-label mb-0" for="{{ widget.data.checkbox_id }}">{{ widget.data.clear_checkbox_label }}</label>
+                        </span>
+                    </div>
+                {% endif %}
+
+                {% include "utils/file_field.html" %}
+
+            </div>
+
+        {% else %}
+            <label>{{ field.label }}</label>
+            {% include "utils/file_field.html" %}
+        {% endif %}
+
+
+    {% endfor %}
+    </div>

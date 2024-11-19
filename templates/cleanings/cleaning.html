@@ -9,7 +9,10 @@
             </div>
             <div class="col-lg-4">
                 <ul class="list-unstyled">
-                   <li><b>Date and time: </b>{{ object.get_scheduled_dt_range }}</li>
+                    <li><b>Date and time: </b>{{ object.get_scheduled_dt_range }}</li>
+                    {% if object.booking.get_is_regular %}
+                        <li><b>Payment status: </b>{{ object.get_payment_status }} <a href="{{ object.get_invoice_url }}">Invoice</a></li>
+                    {% endif %}
                 </ul>
                 <ul class="list-unstyled">
                     <li><b>Type: </b>{{ object.booking.place.get_type_display }}</li>
@@ -36,7 +39,9 @@
                     <li class="mb-3"><b>Comments from Manager: </b>{{ object.manager_comments|default_if_none:""|linebreaks }}</li>
                     <li class="mb-3"><b>Comments from Cleaner: </b>{{ object.cleaner_comments|default_if_none:""|linebreaks}}
                         {% if request.user.is_cleaner %}
-                            <a href="{% url 'cleaner_comment' object.uuid %}">Edit</a>
+                            <a href="{% url 'cleaner_comment' object.uuid %}" class="btn btn-primary">Comment</a>
+                        {% elif request.user.is_support_agent %}
+                            <a href="{% url 'cleaning_update' object.uuid %}" class="btn btn-primary">Edit</a>
                         {% endif %}
                     </li>
                 </ul>
@@ -104,7 +109,7 @@
             </div>
             <div class="col-lg-6">
                 <div class="h3 text-center">Chat</div>
-                <div class="card">
+                <div class="card mb-1">
                     <div id="messages_container" class="card-body messages-container">
                         {% for message in object.get_messages %}
                             {% include "cleanings/partials/message.html" %}

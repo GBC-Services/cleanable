@@ -1,0 +1,37 @@
+<div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped cleanings-table">
+        <thead>
+        <tr>
+            <th>Date</th>
+            <th>Cleaning date</th>
+{#            <th>Cleaning</th>#}
+            <th>Description</th>
+            <th>Status</th>
+            {% if table_type != "general_table" %}
+                <th></th>
+            {% else %}
+                <th>Fee, USD</th>
+            {% endif %}
+        </tr>
+        </thead>
+        <tbody>
+            {% for special_request in special_requests %}
+                <tr>
+                    <td>{{ special_request.created|date:"m/d/Y H:i:s" }}</td>
+                    <td>{{ special_request.booking.scheduled_date|date:"m/d/Y" }}</td>
+{#                    <td>{{ special_request.cleaning|default_if_none:"" }}</td>#}
+                    <td>{{ special_request.description|default_if_none:"" }}</td>
+                    <td>{{ special_request.get_status_display }}</td>
+                    {% if table_type != "general_table" %}
+                        <td>
+                            <a href="{% url 'special_request_respond' special_request.uuid %}"
+                               class="btn btn-primary">Respond</a>
+                        </td>
+                    {% else %}
+                        <td>{{ special_request.fee|default_if_none:"" }}</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

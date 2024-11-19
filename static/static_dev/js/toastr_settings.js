@@ -14,7 +14,7 @@ toastr.css = {
         "onclick": null,
         "showDuration": "2000",
         "hideDuration": "1200",
-        "timeOut": "3200",
+        "timeOut": "2000",
         "extendedTimeOut": "0",
         "showEasing": "swing",
         "hideEasing": "linear",

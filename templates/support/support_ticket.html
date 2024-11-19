@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load general %}
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-center">Support Ticket</div>
+            </div>
+            <div class="col-lg-4 mx-auto">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="fw-bold mb-3">Status: {{ object.get_status_display }}</div>
+                            <ul class="list-unstyled">
+                                <li>Id: {{ object.uuid }}</li>
+                                <li>Assigned to: {% if object.assigned_to == request.user %}you{% else %}{{ object.assigned_to }}{% endif %}</li>
+                                <li>Booking: <a href="{{ object.booking.get_absolute_url }}">{{ object.booking }}</a></li>
+                                <li>Category: {{ object.category }}</li>
+                                <li>Subject: {{ object.subject }}</li>
+                                <li>Text:<br>{{ object.text|safe }}</li>
+                            </ul>
+                        </div>
+                        <div class="text-center">
+                            <a href="{% url 'support_tickets' %}" class="btn btn-secondary">Back</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-5">
+                    <div class="mt-3 mb-3">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                {% crispy form %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="h3 text-center">Messages</div>
+                        {% with object.get_messages as messages %}
+                            {% if not messages %}
+                                <div class="text-center">No messages so far</div>
+                            {% else %}
+                                {% for message in messages %}
+                                    <div class="card mb-2">
+                                        <div class="card-body">
+                                            <div class="support-message">
+                                                <div class="d-flex justify-content-between mb-1 fw-bold">
+                                                    <div>{{ message.user.get_full_name }}</div>
+                                                    <div>{{ message.created|date:"m/d/Y H:i:s" }}</div>
+                                                </div>
+                                                {{ message.text|linebreaks }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js_stuff %}
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $("table").DataTable({
+                order: [],
+            })
+        })
+    </script>
+{% endblock js_stuff %}

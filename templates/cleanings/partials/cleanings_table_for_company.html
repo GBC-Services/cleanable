@@ -17,7 +17,7 @@
             {% for cleaning in cleanings %}
                 <tr data-uuid="{{ cleaning.uuid }}">
                     <td>{{ cleaning.booking.place.name }}</td>
-                    <td>{{ cleaning.booking.get_scheduled_dt_range }}</td>
+                    <td>{{ cleaning.get_scheduled_dt_range }}</td>
                     <td>
                         {% with cleaning.booking.scheduled_date as date %}
                             {% with forms_by_dates|get_item:date as form %}

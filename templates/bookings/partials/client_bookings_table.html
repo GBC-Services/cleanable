@@ -3,6 +3,7 @@
         <thead>
         <tr>
             <td>Created</td>
+            <th width="10%">Type</th>
             <th>Place</th>
             <th>Booked For</th>
             <th>Services</th>
@@ -16,6 +17,11 @@
         {% for booking in object_list %}
             <tr>
                 <td>{{ booking.created|date:"m/d/Y H:i:s" }}</td>
+                <td>{{ booking.get_regularity_type_display }}
+                    {% if booking.get_is_regular %}
+                        <div class="regularity-option">{{ booking.get_regularity_option_display }}</div>
+                    {% endif %}
+                </td>
                 <td>{{ booking.place.address }}</td>
                 <td>{{ booking.get_scheduled_dt_range }}</td>
                 <td>{{ booking.get_service_names_as_string }}</td>

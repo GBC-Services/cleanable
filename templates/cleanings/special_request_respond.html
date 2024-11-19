@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block header_stuff %}
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/sunny/jquery-ui.min.css" integrity="sha512-bK9/5A1BwPJ8jYk16TyP4vJABe531hdsYppilDh7MFq7bZELm0QWZW7shSRAG/x5JO4LCX4YZGQM4tjRBakQkA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jquery-timepicker/1.14.0/jquery.timepicker.min.css" integrity="sha512-WlaNl0+Upj44uL9cq9cgIWSobsjEOD1H7GK1Ny1gmwl43sO0QAUxVpvX2x+5iQz/C60J3+bM7V07aC/CNWt/Yw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <div class="h3 text-center">Special Request</div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-5 mx-auto">
+                <div class="card border-0">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ object.description|linebreaks }}
+                        </div>
+
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <a href="{% url 'special_request_reject' object.uuid %}" class="btn btn-danger">Reject</a>
+                            </div>
+                            <div>or</div>
+                        </div>
+
+                        <div class="h3 text-center">Confirm</div>
+                        <div>
+                            {% crispy form %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}

@@ -34,14 +34,15 @@ admin.autodiscover()
 
 urlpatterns = [
   path('adminishidden/', admin.site.urls),
-  path('', include('bookings.urls')),
-  path('', include('cleaners.urls')),
-  path('', include('cleanings.urls')),
-  path('', include('clients.urls')),
-  path('', include('companies.urls')),
-  path('', include('services.urls')),
-  path('', include('subscriptions.urls')),
-  path('', include('users.urls')),
+  path('', include('apps.bookings.urls')),
+  path('', include('apps.cleaners.urls')),
+  path('', include('apps.cleanings.urls')),
+  path('', include('apps.clients.urls')),
+  path('', include('apps.companies.urls')),
+  path('', include('apps.services.urls')),
+  path('', include('apps.subscriptions.urls')),
+  path('', include('apps.support.urls')),
+  path('', include('apps.users.urls')),
   path('accounts/', include('allauth.urls')),
 ] \
   + static(STATIC_URL, document_root=STATIC_ROOT) \

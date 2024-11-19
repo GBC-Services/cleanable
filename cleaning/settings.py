@@ -50,26 +50,30 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'bookings',
-    'cleaners',
-    'cleanings',
-    'clients',
-    'companies',
-    'locations',
-    'notifications',
-    'services',
-    'subscriptions',
-    'users',
-    'utils',
+    'apps.bookings',
+    'apps.cleaners',
+    'apps.cleanings',
+    'apps.clients',
+    'apps.companies',
+    'apps.locations',
+    'apps.notifications',
+    'apps.services',
+    'apps.subscriptions',
+    'apps.support',
+    'apps.users',
+    'apps.utils',
 
     # packages
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
     'axes',
     'crispy_forms',
     'crispy_bootstrap5',
     'captcha',
+    'crequest',
+    'django_cleanup.apps.CleanupConfig',
 ]
 
 MIDDLEWARE = [
@@ -82,6 +86,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     'axes.middleware.AxesMiddleware',
+    'crequest.middleware.CrequestMiddleware',
 ]
 
 ROOT_URLCONF = 'cleaning.urls'
@@ -207,9 +212,22 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 ACCOUNT_FORMS = {
-    'login': 'users.allauth_forms.CustomLoginForm',
-    'signup': 'users.allauth_forms.CustomSignupForm',
-    'reset_password': 'users.allauth_forms.CustomResetPasswordForm'
+    'login': 'apps.users.allauth_forms.CustomLoginForm',
+    'signup': 'apps.users.allauth_forms.CustomSignupForm',
+    'reset_password': 'apps.users.allauth_forms.CustomResetPasswordForm'
+}
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        # For each OAuth based provider, either add a ``SocialApp``
+        # (``socialaccount`` app) containing the required client
+        # credentials, or list them here:
+        'APP': {
+            'client_id': env.str("GOOGLE_API_CLIENT_ID", default=""),
+            'secret': env.str("GOOGLE_API_SECRET", default=""),
+            'key': ''
+        }
+    }
 }
 
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
@@ -315,3 +333,5 @@ if IS_ON_PROD:
             },
         }
     }
+
+STRIPE_PRODUCT_ID = env.str("STRIPE_PRODUCT_ID")

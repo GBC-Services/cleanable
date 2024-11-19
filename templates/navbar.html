@@ -22,6 +22,13 @@
                     </li>
                 {% endif %}
 
+                {% if request.user.is_client or request.user.is_support_agent %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'support' in request.path %}active{% endif %}"
+                           href="{% url 'support_tickets' %}">Support Center</a>
+                    </li>
+                {% endif %}
+
                 {% if request.user.is_general_admin %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'company-service-fees' in request.path %}active{% endif %}"
@@ -30,6 +37,14 @@
                     <li class="nav-item">
                         <a class="nav-link {% if 'companies' in request.path %}active{% endif %}"
                            href="{% url 'companies' %}">Companies</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'verification' in request.path %}active{% endif %}"
+                           href="{% url 'verification' %}">Verification</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'support' in request.path %}active{% endif %}"
+                           href="{% url 'support_tickets' %}">Support Center</a>
                     </li>
                 {% endif %}
 
@@ -50,6 +65,10 @@
                         <a class="nav-link {% if 'company-service-fees' in request.path %}active{% endif %}"
                            href="{% url 'company_service_fees' %}">Service Fees</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'special-requests' in request.path %}active{% endif %}"
+                           href="{% url 'special_requests' %}">Special Requests</a>
+                    </li>
                 {% endif %}
 
                 {% if request.user.is_cleaner %}
@@ -57,20 +76,39 @@
                         <a class="nav-link {% if 'cleaning' in request.path %}active{% endif %}"
                            href="{% url 'cleanings' %}">Cleanings</a>
                     </li>
+                    {% if not request.user.is_verified %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'verification' in request.path %}active{% endif %}"
+                               href="{% url 'verification' %}">Pending Verification</a>
+                        </li>
+                    {% endif %}
                 {% endif %}
-
             </ul>
             <ul class="navbar-nav ms-auto mb-2 mb-md-0">
-                {% if not request.user.is_authenticated %}
+                {% if request.user.is_authenticated %}
+                    <li class="nav-item">
+                        <div class="d-flex justify-content-end">
+                            {% if request.user.image_xsmall %}
+                                <div class="me-1">
+                                    <a href="{% url 'profile_update' %}">
+                                        <img src="{{ request.user.image_xsmall.url }}" alt="avatar" class="avatar">
+                                    </a>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <a class="nav-link" href="{% url 'profile_update' %}">Profile</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'account_logout' %}">Log out</a>
+                    </li>
+                {% else %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'account_signup' %}">Sign up</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'account_login' %}">Log in</a>
-                    </li>
-                {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account_logout' %}">Log out</a>
                     </li>
                 {% endif %}
             </ul>
