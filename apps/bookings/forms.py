@@ -98,7 +98,7 @@ class BookingForm(BookingOrCleaningDateTimeFormMixin, forms.ModelForm):
         )
 
 
-class LimitedBookingForm(forms.Form):
+class LimitedBookingForm(forms.ModelForm):
 
     class Meta:
         model = Booking
@@ -106,6 +106,7 @@ class LimitedBookingForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["client_comments"].widget.attrs["rows"] = 3
         self.helper = FormHelper(self)
         self.helper.layout = Layout(
             Field("client_comments"),
