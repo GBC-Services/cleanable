@@ -305,7 +305,7 @@ class Booking(BaseModel):
         return urllib.parse.quote(self.stripe_email)
 
     def get_payment_status(self):
-        return "Paid" if self.is_paid else "Waiting for payment"
+        return f"{self.get_payment_status_display()}"
 
     def get_is_regular(self):
         return self.regularity_type == Service.REGULARITY_TYPE_REGULAR
