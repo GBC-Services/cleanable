@@ -30,7 +30,7 @@
                 <td>{{ booking.total_fee_final }}</td>
                 <td>{{ booking.get_status_display }}</td>
                 <td>{{ booking.get_payment_status }}
-                    {% if booking.is_paid %}
+                    {% if booking.payment_status == booking.PAYMENT_STATUS_FULLY_PAID %}
                         <a href="{% url 'stripe_receipt' booking.uuid %}">
                             <i class="fa fa-file" aria-hidden="true"></i>
                         </a>

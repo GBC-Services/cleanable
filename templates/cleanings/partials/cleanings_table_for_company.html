@@ -19,6 +19,16 @@
                     <td>{{ cleaning.booking.place.name }}</td>
                     <td>{{ cleaning.get_scheduled_dt_range }}</td>
                     <td>
+                        {% with cleaning.booking.preferred_cleaners.all|filter_by_company:object as preferred_cleaners %}
+                            {% if preferred_cleaners %}
+                                <div class="alert alert-success text-start">
+                                    Client preference:
+                                    {% for item in preferred_cleaners %}
+                                        {{ item }}{% if not forloop.last %},{% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endwith %}
                         {% with cleaning.booking.scheduled_date as date %}
                             {% with forms_by_dates|get_item:date as form %}
                                 {% crispy form %}

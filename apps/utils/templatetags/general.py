@@ -26,3 +26,8 @@ def get_company_availability_for_booking(obj, booking):
 @register.filter
 def get_special_cleaning_request_for_booking(obj, booking):
     return obj.get_special_cleaning_request_for_booking(booking)
+
+
+@register.filter
+def filter_by_company(qs, company):
+    return qs.filter(company=company)

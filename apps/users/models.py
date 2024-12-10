@@ -9,6 +9,7 @@ from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 from apps.utils.images_utils import UploadToPathAndRenameImage, OptimizeImageSize
 from crequest.middleware import CrequestMiddleware
+from apps.services.models import Service
 
 
 class User(AbstractUser):
@@ -46,6 +47,9 @@ class User(AbstractUser):
                                               null=True, default=None)
 
     is_verified = models.BooleanField(default=False)
+
+    cleaner_preferred_districts = models.TextField(blank=True, null=True, default=None)
+    cleaner_preferred_service_types = models.ManyToManyField(Service, null=True)
 
     REQUIRED_FIELDS = []
     objects = CustomUserManager()
@@ -102,7 +106,7 @@ class User(AbstractUser):
         return self.is_superuser and self.role == self.ROLE_GENERAL_ADMIN if self.role else False
 
     def get_places(self):
-        return self.place_set.all().order_by("-id")
+        return self.place_set.filter(is_active=True).order_by("-id")
 
     def get_places_5(self):
         return self.get_places()[:5]
@@ -154,10 +158,10 @@ class User(AbstractUser):
         return cleanings
 
     def get_cleaners(self):
-        from apps.cleanings.models import Cleaning
-        cleanings = Cleaning.object.filer(booking__user=self)
-        print(cleanings)
-        return cleanings
+        from apps.cleanings.models import Cleaning, CleanerForCleaning
+        cleanings = Cleaning.objects.filter(booking__client=self)
+        cleaner_ids = CleanerForCleaning.objects.filter(cleaning__in=cleanings).values_list("cleaner_id", flat=True)
+        return User.objects.filter(id__in=cleaner_ids).distinct()
 
 
 class UserSession(BaseModel):

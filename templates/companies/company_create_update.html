@@ -2,6 +2,8 @@
 {% load crispy_forms_tags %}
 
 {% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     {% include "partials/select2_css.html" %}
 {% endblock header_stuff %}
 
@@ -21,11 +23,47 @@
                 </div>
             </div>
         </div>
+        {% if request.user.is_general_admin and object %}
+            <div class="row mt-3">
+                <div class="col-lg-6 mx-auto">
+                    <div class="h3 text-center">Documents</div>
+                    <div class="table-responsive">
+                        <div class="text-end">
+                            <a href="{% url 'company_document_create' object.uuid %}" class="btn btn-primary mb-1">Create</a>
+                        </div>
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Document</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for company_document in object.get_documents %}
+                                    <tr>
+                                        <td>{{ company_document.type.name }}</td>
+                                        <td><a href="{{ company_document.file.url }}">{{ company_document.file.name }}</a></td>
+                                        <td>
+                                            <a href="{% url 'company_document_update' object.uuid company_document.uuid %}"
+                                               class="btn btn-primary">
+                                                Update
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
     </div>
 {% endblock content %}
 
 {% block js_stuff %}
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.8/jquery.inputmask.min.js" integrity="sha512-efAcjYoYT0sXxQRtxGY37CKYmqsFVOIwMApaEbrxJr4RwqVVGw8o+Lfh/+59TU07+suZn1BWq4fDl5fdgyCNkw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     {% include "partials/select2_js.html" %}
     <script>
         $(document).ready(function(){
@@ -33,6 +71,11 @@
                 $(this).select2({theme: 'bootstrap-5'}).trigger('change');
             });
             $("#id_phone").inputmask({mask: "+1 (999) 999-9999", greedy: false});
+
+            $("table").DataTable({
+                order: [],
+            });
+
         })
     </script>
 {% endblock js_stuff %}

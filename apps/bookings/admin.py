@@ -1,6 +1,5 @@
 from django.contrib import admin
-from .models import (DiscountCode, Booking, BookingStatusChange, BookingService, BookingChatMessage,
-                     FeedbackTagForCleaner, FeedbackTagForClient)
+from .models import (DiscountCode, Booking, BookingStatusChange, BookingService, BookingChatMessage)
 
 
 class BookingServiceInline(admin.TabularInline):
@@ -11,16 +10,6 @@ class BookingServiceInline(admin.TabularInline):
 @admin.register(DiscountCode)
 class DiscountCodeAdmin(admin.ModelAdmin):
     list_display = [field.name for field in DiscountCode._meta.fields]
-
-
-@admin.register(FeedbackTagForCleaner)
-class FeedbackTagForCleanerAdmin(admin.ModelAdmin):
-    list_display = [field.name for field in FeedbackTagForCleaner._meta.fields]
-
-
-@admin.register(FeedbackTagForClient)
-class FeedbackTagForClientAdmin(admin.ModelAdmin):
-    list_display = [field.name for field in FeedbackTagForClient._meta.fields]
 
 
 @admin.register(Booking)

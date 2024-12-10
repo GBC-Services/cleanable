@@ -1,0 +1,51 @@
+<div class="card">
+    <div class="card-body">
+        <div class="h3 text-center">{% if object.get_is_regular %}Regular Cleanings{% else %}Cleaning{% endif %}</div>
+
+        {% with object.get_active_cleanings as cleanings %}
+            {% if not cleanings %}
+                <div class="text-center">No cleanings assigned yet</div>
+            {% else %}
+                <div class="table-responsive">
+                    <table id="cleanings_table" class="table table-bordered table-striped" width="100%">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Score</th>
+                                <th>Invoice</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cleaning in cleanings %}
+                                <tr>
+                                    <td>
+                                        <div class="mt-3 mb-3">
+                                            <div>
+                                                <ul class="list-unstyled">
+                                                    {{ cleaning.get_scheduled_dt_range }}
+                                                    <a href="{{ cleaning.get_google_calendar_link }}">Add to gCal</a>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ cleaning.get_status_display }}</td>
+                                    <td>{{ cleaning.score_for_cleaner|default_if_none:"" }}</td>
+                                    <td>
+                                        {% with cleaning.get_main_invoice as invoice %}
+                                            {% if invoice %}
+                                                <a href="{{ invoice.get_invoice_url }}">
+                                                    View
+                                                </a>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+</div>

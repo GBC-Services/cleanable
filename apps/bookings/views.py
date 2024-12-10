@@ -10,7 +10,7 @@ from apps.clients.models import Place
 from apps.companies.models import Company
 from apps.locations.models import ZipCode, RegionZipCode
 from .models import DiscountCode, BookingZipCodeSearch, Booking
-from .forms import (BookingForm, BookingCommentOnlyForm, PlacesForm, PublicBookingZipCodeForm,
+from .forms import (BookingForm, LimitedBookingForm, PlacesForm, PublicBookingZipCodeForm,
                     PublicBookingServicesSelectionForm,
                     PublicBookingDateTimeForm, PublicBookingAddressForm)
 from .mixins.views import UserSessionMixin, CheckoutViewMixin
@@ -46,7 +46,8 @@ class BookingView(LoginRequiredMixin, GeneralAdminOrClientOrSupportAgentAccessMi
             return "bookings/booking_for_client.html"
 
 
-class BookingCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAccessMixin, BookingsMixin, generic.UpdateView):
+class BookingCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAccessMixin, BookingsMixin,
+                              generic.UpdateView):
     template_name = "bookings/booking_create_update.html"
     model = Booking
     slug_field = "uuid"
@@ -64,6 +65,10 @@ class BookingCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAcc
             object = self.get_object()
             if not object is None and object.status == object.STATUS_COMPLETED and object.score_for_cleaner:
                 return HttpResponseForbidden()
+
+            # if self.object and self.object.status != self.object.STATUS_NEW:
+            #     return HttpResponseRedirect(reverse("cleaning_update", kwargs=(dict(uuid=self.object.get_last_completed_cleaning()))))
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_place(self):
@@ -91,22 +96,29 @@ class BookingCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAcc
         if not self.object or self.object.status == self.object.STATUS_NEW:
             form_class = BookingForm
         else:
-            form_class = BookingCommentOnlyForm
+            form_class = LimitedBookingForm
         return form_class
 
     def form_valid(self, form):
+        print(form)
         user = self.request.user
 
         current_object = self.get_object()
+        print(f"current object: {current_object}")
+
         object = form.save(commit=False)
-        object.client = user
-        object.place_type = self.place.type
-        object.place = self.place
+        if not current_object:
+            object.client = user
+            object.place_type = self.place.type
+            object.place = self.place
         object.save()
 
-        """Saving services"""
-        services = form.cleaned_data.get("services")
-        object.update_services(services)
+        if not current_object:
+            form.save_m2m()
+
+            """Saving services"""
+            services = form.cleaned_data.get("services")
+            object.update_services(services)
 
         if not current_object:
             return HttpResponseRedirect(reverse("checkout", kwargs=dict(uuid=object.uuid)))
@@ -156,16 +168,16 @@ class BookingCleaningAssignView(LoginRequiredMixin, GeneralAdminAccessMixin, Boo
 
     def get(self, *args, **kwargs):
         booking = self.get_object()
-        if not booking.is_paid:
+        cleaning = booking.get_last_cleaning()
+        if not cleaning:
+            cleaning = booking.create_cleaning()
+        if not cleaning.status == cleaning.PAYMENT_STATUS_FULLY_PAID:
             messages.error(self.request, "Not assigned! This booking is not paid!")
         else:
             company = self.get_company()
-            if not Cleaning.objects.filter(booking=booking, status__lte=Cleaning.STATUS_NOT_COMPLETED).exists():
-                created = booking.create_cleaning(company)
-                if created:
-                    messages.success(self.request, "Done!")
-                else:
-                    messages.error(self.request, "Error while creating a cleaning!")
+            if not cleaning.company:
+                cleaning.company = company
+                cleaning.save(force_update=True)
             else:
                 messages.error(self.request, "This booking is already assigned and active in another company!")
         return HttpResponseRedirect(booking.get_absolute_url())
@@ -181,6 +193,9 @@ class SendSpecialRequestForCleaningView(LoginRequiredMixin, GeneralAdminAccessMi
 
     def get(self, *args, **kwargs):
         booking = self.get_object()
+        if not booking.special_request:
+            messages.error(self.request, "Special request is missing!")
+            return HttpResponseRedirect(booking.get_absolute_url())
         company = self.get_company()
         if not Cleaning.objects.filter(booking=booking, status__lte=Cleaning.STATUS_NOT_COMPLETED).exists():
             booking.send_special_request_for_cleaning(company)
@@ -209,9 +224,7 @@ class NewBookingPlaceSelectionView(LoginRequiredMixin, generic.TemplateView, gen
             super().form_valid(form)
 
 
-class CheckoutView(LoginRequiredMixin, ClientAccessMixin, BookingsMixin,
-                   CheckoutViewMixin
-                   ):
+class CheckoutView(LoginRequiredMixin, ClientAccessMixin, BookingsMixin, CheckoutViewMixin):
     pass
 
 
@@ -230,7 +243,7 @@ class SuccessfulPaymentView(ClientOrNotAuthAccessMixin, BookingsMixin, generic.D
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
-        if not obj.is_paid:
+        if not obj.payment_status == obj.PAYMENT_STATUS_FULLY_PAID:
             data = self.request.GET
             if data:
                 payment_intent_id = data.get("payment_intent")
@@ -238,10 +251,9 @@ class SuccessfulPaymentView(ClientOrNotAuthAccessMixin, BookingsMixin, generic.D
                 payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
                 if payment_intent_id == obj.stripe_payment_intent_id \
                         and payment_intent_client_secret == payment_intent["client_secret"]:
-                    obj.is_paid = True
-                    obj.stripe_email = payment_intent["receipt_email"]
-                    obj.stripe_customer_id = payment_intent["customer"]
-                    obj.save(force_update=True)
+
+                    obj.mark_paid(payment_intent)
+
         return super().get(*args, **kwargs)
 
 
@@ -323,8 +335,9 @@ class PublicBookingServicesView(generic.TemplateView, generic.FormView, UserSess
         cleaned_data = form.cleaned_data
         place_type = cleaned_data.get("place_type")
         area_size = cleaned_data.get("area_size")
-        object, _ = Booking.objects.update_or_create(client=None, user_session=self.user_session, status=Booking.STATUS_NEW,
-                                                     is_paid=False,
+        object, _ = Booking.objects.update_or_create(client=None, user_session=self.user_session,
+                                                     status=Booking.STATUS_NEW,
+                                                     payment_status=Booking.PAYMENT_STATUS_NOT_PAID,
                                                      defaults=dict(place_type=place_type, area_size=area_size))
 
         """Saving services"""

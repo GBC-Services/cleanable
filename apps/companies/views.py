@@ -4,8 +4,8 @@ from django.http import HttpResponseRedirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib import messages
-from .models import Company, CompanyServiceFeesSnapshot
-from .forms import CompanyForm
+from .models import Company, CompanyDocument, CompanyServiceFeesSnapshot
+from .forms import CompanyForm, CompanyDocumentForm
 from apps.cleanings.forms import CleanerAssignForm
 from apps.utils.mixins.access_mixins import (GeneralAdminAccessMixin, ManagerAccessMixin, GeneralAdminOrManagerAccessMixin)
 from apps.utils.mixins.queryset_mixins import CompaniesMixin
@@ -57,13 +57,21 @@ class CompanyView(LoginRequiredMixin, GeneralAdminOrManagerAccessMixin, Companie
 #     success_url = reverse_lazy("companies")
 
 
-class CompanyUpdateView(LoginRequiredMixin, GeneralAdminOrManagerAccessMixin, CompaniesMixin, SuccessMessageMixin, generic.UpdateView):
+class CompanyUpdateView(LoginRequiredMixin, GeneralAdminOrManagerAccessMixin, CompaniesMixin,
+                        SuccessMessageMixin, generic.UpdateView):
     template_name = "companies/company_create_update.html"
     model = Company
     form_class = CompanyForm
     slug_field = "uuid"
     slug_url_kwarg = "uuid"
     success_message = "Done!"
+
+    def get_object(self, queryset=None):
+        try:
+            self.object = super().get_object(queryset)
+            return self.object
+        except AttributeError:
+            return None
 
     def get_success_url(self):
         if self.request.user.is_general_admin:
@@ -75,6 +83,39 @@ class CompanyUpdateView(LoginRequiredMixin, GeneralAdminOrManagerAccessMixin, Co
         kwargs = super().get_form_kwargs()
         kwargs["request"] = self.request
         return kwargs
+
+
+class CompanyDocumentCreateUpdateView(LoginRequiredMixin, GeneralAdminAccessMixin, generic.UpdateView):
+    template_name = "companies/company_document_create_update.html"
+    model = CompanyDocument
+    form_class = CompanyDocumentForm
+    slug_field = "uuid"
+    slug_url_kwarg = "uuid"
+    success_message = "Done!"
+
+    def get_success_url(self):
+        return reverse("companies")
+
+    def get_object(self, queryset=None):
+        try:
+            self.object = super().get_object(queryset)
+            return self.object
+        except AttributeError:
+            return None
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.company = self.get_company()
+        obj.save()
+        messages.success(self.request, self.success_message)
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_company(self):
+        try:
+            company = Company.objects.get(uuid=self.kwargs.get("company_uuid"))
+        except Company.DoesNotExist:
+            company = None
+        return company
 
 
 class CompanyContactsView(LoginRequiredMixin, GeneralAdminAccessMixin, CompaniesMixin, generic.DetailView):

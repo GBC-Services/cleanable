@@ -8,7 +8,7 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-6 mx-auto">
-                <div class="h3 text-center">{ object.name }}</div>
+                <div class="h3 text-center">Contacts for {{ object.name }}</div>
             </div>
         </div>
         <div class="row">
@@ -18,7 +18,7 @@
                         <div class="mb-3">
                             <b>Company phone: {{ company.phone|default_if_none:"" }}</b>
                         </div>
-                        <div class="table-responsive">
+                        <div class="table-responsive mb-3">
                             <table class="table table-bordered table-striped" width="100%">
                                 <thead>
                                     <tr>
@@ -37,6 +37,10 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div class="text-center">
+                            <button onclick="history.back()" class="btn btn-secondary me-1">Back</button>
                         </div>
                     </div>
                 </div>

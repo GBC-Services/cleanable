@@ -25,6 +25,7 @@ class Company(BaseDictModel):
                                    blank=True, null=True, default=None, editable=False)
     logo_xsmall = models.ImageField(upload_to=UploadToPathAndRenameImage(upload_to="companies/logos/xsmall"),
                                      blank=True, null=True, default=None, editable=False)
+    e_signed_contract_url = models.URLField(blank=True, null=True, default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -128,6 +129,19 @@ class Company(BaseDictModel):
 
     def get_new_special_requests(self):
         return self.get_special_requests().filter(status=10)  # new
+
+    def get_documents(self):
+        return self.companydocument_set.filter(is_active=True).order_by("-id")
+
+
+class CompanyDocumentType(BaseDictModel):
+    order_index = models.IntegerField(blank=True, null=True, default=None)
+
+
+class CompanyDocument(BaseModel):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    type = models.ForeignKey(CompanyDocumentType, on_delete=models.CASCADE)
+    file = models.FileField(upload_to="company/initial_documents")
 
 
 class CompanyServiceFeesSnapshot(BaseModel):

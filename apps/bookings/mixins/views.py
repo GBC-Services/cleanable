@@ -48,7 +48,7 @@ class StripeMixins(generic.DetailView, generic.FormView):
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if self.object.is_paid:
+        if self.object.paymeny_status == self.object.PAYMENT_STATUS_FULLY_PAID:
             return HttpResponseRedirect(self.object.get_successful_payment_url())
         return super().dispatch(request, *args, **kwargs)
 
@@ -93,7 +93,6 @@ class CheckoutViewMixin(StripeMixins):
             customer_id = booking.stripe_customer_id
         elif user.is_authenticated:
             customer = stripe.Customer.create(email=user.email)
-            print(customer)
             customer_id = customer["id"]
         else:
             customer_id = None

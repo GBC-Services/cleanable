@@ -37,3 +37,4 @@ class CompanyCleanerInviteForm(forms.ModelForm):
 
 class CleanerScheduleForm(forms.Form):
     is_active = forms.BooleanField()
+

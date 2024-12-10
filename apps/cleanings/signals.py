@@ -9,6 +9,16 @@ def cleaning_post_save(sender, instance, created, **kwargs):
     if created and instance.booking.get_is_regular():
         instance.create_invoice()
 
+    if instance.company and not instance._original_fields["company"]:
+        booking = instance.booking
+        booking.status = booking.STATUS_IN_WORK
+        booking.save(force_update=True)
+
+    if instance.payment_status != instance._original_fields["payment_status"]:
+        booking = instance.booking
+        booking.payment_status = instance.payment_status
+        booking.save(force_update=True)
+
     if created or instance.status != instance._original_fields.get("status"):
         CleaningStatusChange.objects.create(cleaning=instance, status=instance.status)
         if instance.status == instance.STATUS_COMPLETED:

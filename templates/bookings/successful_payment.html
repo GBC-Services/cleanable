@@ -10,7 +10,7 @@
         <div class="col-lg-6 mx-auto">
             <div class="card">
                 <div class="card-body">
-                    {% if object.is_paid %}
+                    {% if object.payment_status == object.PAYMENT_STATUS_FULLY_PAID %}
                         <div class="h3 text-center">
                             Thank you!<br>
                             Your payment was successful!

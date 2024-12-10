@@ -166,6 +166,34 @@ class CleaningIssueForm(forms.ModelForm):
         )
 
 
+class CleaningCommentOnlyForm(forms.ModelForm):
+    score_for_cleaner = forms.IntegerField(min_value=1, max_value=5, label="Score for cleaner (1-5)")
+
+    class Meta:
+        model = Cleaning
+        fields = ["client_comments", "score_for_cleaner", "feedback_for_cleaner"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if int(self.instance.status) != self.instance.STATUS_COMPLETED:
+            del self.fields["score_for_cleaner"]
+            del self.fields["feedback_for_cleaner"]
+        else:
+            del self.fields["client_comments"]
+
+        self.helper = FormHelper(self)
+        self.helper.layout = Layout(
+            Field("client_comments"),
+            Field("score_for_cleaner"),
+            Field("feedback_for_cleaner"),
+            Div(
+                HTML('<button onclick="history.back()" class="btn btn-secondary me-1">Back</button>'),
+                Submit('submit', 'Save', css_class="btn btn-primary btn-block text-uppercase"),
+                css_class="text-center"
+            )
+        )
+
+
 class MessageForm(forms.Form):
     message = forms.CharField(widget=forms.Textarea(attrs=dict(rows=2)), label=False)
 

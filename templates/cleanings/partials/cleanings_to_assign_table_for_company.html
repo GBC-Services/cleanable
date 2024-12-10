@@ -1,0 +1,48 @@
+{% load crispy_forms_tags %}
+{% load general %}
+
+<div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped cleanings-table">
+        <thead>
+        <tr>
+            <th>Place Name</th>
+            <th>Date</th>
+            <th>Services</th>
+            <th>Cleaner</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for cleaning in cleanings %}
+            <tr data-uuid="{{ cleaning.uuid }}">
+                <td>{{ cleaning.booking.place.name }}</td>
+                <td>{{ cleaning.get_scheduled_dt_range }}</td>
+                <td>{% for booking_service in cleaning.booking.get_booking_services %}
+                    <span class="badge bg-secondary">{{ booking_service.service }}</span>
+                {% endfor %}
+                </td>
+                <td>
+                    {% with cleaning.booking.preferred_cleaners.all|filter_by_company:object as preferred_cleaners %}
+                        {% if preferred_cleaners %}
+                            <div class="alert alert-success text-start">
+                                Client preference:
+                                {% for item in preferred_cleaners %}
+                                    {{ item }}{% if not forloop.last %},{% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                    {% with cleaning.booking.scheduled_date as date %}
+                        {% with forms_by_dates|get_item:date as form %}
+                            {% crispy form %}
+                        {% endwith %}
+                    {% endwith %}
+                </td>
+                <td>
+                    <a href="{% url 'cleaning' cleaning.uuid %}" class="btn btn-primary">View</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -14,7 +14,6 @@ from django.db import transaction
 import datetime
 import urllib.parse
 import stripe
-from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -29,14 +28,6 @@ class DiscountCode(BaseModel):
 
     def __str__(self):
         return f"{self.code}"
-
-
-class FeedbackTagForCleaner(BaseDictModel):
-    pass
-
-
-class FeedbackTagForClient(BaseDictModel):
-    pass
 
 
 class BookingZipCodeSearch(BaseModel):
@@ -70,7 +61,17 @@ class Booking(BaseModel):
         (REGULARITY_MONTHLY, "Monthly")
     )
 
+    PAYMENT_STATUS_NOT_PAID = 10
+    PAYMENT_STATUS_PARTIALLY_PAID = 20
+    PAYMENT_STATUS_FULLY_PAID = 30
+    PAYMENT_STATUSES = (
+        (PAYMENT_STATUS_NOT_PAID, "Not paid"),
+        (PAYMENT_STATUS_PARTIALLY_PAID, "Partially paid"),
+        (PAYMENT_STATUS_FULLY_PAID, "Paid")
+    )
+
     status = models.PositiveIntegerField(choices=STATUSES, default=10)
+    payment_status = models.PositiveIntegerField(choices=PAYMENT_STATUSES, default=PAYMENT_STATUS_NOT_PAID)
     regularity_type = models.PositiveIntegerField(choices=Service.REGULARITY_TYPES,
                                                   default=Service.REGULARITY_TYPE_ONE_TIME)
     regularity_option = models.PositiveIntegerField(choices=REGULARITIES, blank=True, null=True, default=None)
@@ -93,6 +94,9 @@ class Booking(BaseModel):
     scheduled_start_dt = models.DateTimeField(blank=True, null=True, default=None)
     scheduled_end_dt = models.DateTimeField(blank=True, null=True, default=None)
     comments = models.TextField(blank=True, null=True, default=None)
+
+    preferred_cleaners = models.ManyToManyField(User, blank=True, default=None,
+                                                related_name="booking_preferred_cleaners")
     special_request = models.TextField(blank=True, null=True, default=None)
 
     total_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -103,8 +107,6 @@ class Booking(BaseModel):
     stripe_payment_intent_id = models.CharField(max_length=64, blank=True, null=True, default=None)
     stripe_email = models.EmailField(blank=True, null=True, default=None)
     stripe_customer_id = models.CharField(max_length=64, blank=True, null=True, default=None)
-
-    is_paid = models.BooleanField(default=False)
 
     tip_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     stripe_tip_payment_intent_id = models.CharField(max_length=64, blank=True, null=True, default=None)
@@ -117,16 +119,6 @@ class Booking(BaseModel):
     client_comments = models.TextField(blank=True, null=True, default=None)
     cleaner_comments = models.TextField(blank=True, null=True, default=None)
     manager_comments = models.TextField(blank=True, null=True, default=None)
-
-    score_for_cleaner = models.PositiveIntegerField(blank=True, null=True, default=None,
-                                                    validators=[MinValueValidator(1), MaxValueValidator(5)])
-    feedback_for_cleaner = models.TextField(blank=True, null=True, default=None)
-    feedback_tags_for_cleaner = models.ManyToManyField(FeedbackTagForCleaner, blank=True, default=None)
-
-    score_for_client = models.PositiveIntegerField(blank=True, null=True, default=None,
-                                                   validators=[MinValueValidator(1), MaxValueValidator(5)])
-    feedback_for_client = models.TextField(blank=True, null=True, default=None)
-    feedback_tags_for_client = models.ManyToManyField(FeedbackTagForClient, blank=True, default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -174,14 +166,16 @@ class Booking(BaseModel):
         from apps.cleanings.models import Cleaning
         is_one_time_cleaning = self.get_is_one_time()
         with transaction.atomic():
-
-            if is_one_time_cleaning and Cleaning.objects.filter(booking=self, status__lte=Cleaning.STATUS_NOT_COMPLETED).exists():
+            """Prevent creating another cleaning for on time cleaning booking, 
+            if a cleaning already exists."""
+            if is_one_time_cleaning and Cleaning.objects.filter(booking=self, status__lte=Cleaning.STATUS_NOT_COMPLETED)\
+                    .exists():
                 return True
 
             kwargs = dict(booking=self, company=company)
             last_cleaning = self.get_last_cleaning()
             if is_one_time_cleaning or (not is_one_time_cleaning and not last_cleaning):
-                Cleaning.objects.get_or_create(**kwargs)
+                Cleaning.objects.create(**kwargs)
             else:
                 kwargs["company"] = last_cleaning.company
                 days_nmb = self.get_days_nmb_between_cleanings()
@@ -190,7 +184,6 @@ class Booking(BaseModel):
                 kwargs["scheduled_start_dt"] = datetime.datetime.combine(scheduled_date, self.scheduled_start_dt.time())
                 kwargs["scheduled_end_dt"] = datetime.datetime.combine(scheduled_date, self.scheduled_end_dt.time())
                 Cleaning.objects.get_or_create(**kwargs)
-            self.status = self.STATUS_IN_WORK
             self.save(force_update=True)
 
             return True
@@ -204,7 +197,10 @@ class Booking(BaseModel):
         return self.cleaning_set.all().order_by("-id")
 
     def is_active_cleaning(self):
-        return self.get_cleanings().filter(status__lte=Cleaning.STATUS_NOT_COMPLETED).exists()
+        return self.get_active_cleanings().exists()
+
+    def get_active_cleanings(self):
+        return self.get_cleanings().filter(status__lte=Cleaning.STATUS_NOT_COMPLETED)
 
     def get_booking_services(self, as_service_fee=False):
         services = self.bookingservice_set.filter(is_active=True)
@@ -264,10 +260,14 @@ class Booking(BaseModel):
     def get_last_cleaning(self):
         return self.cleaning_set.last()
 
+    def get_last_completed_cleaning(self):
+        return self.cleaning_set.filter(status=Cleaning.STATUS_COMPLETED)
+
     def get_successful_payment_url(self):
         return reverse("successful_payment", kwargs=dict(uuid=self.uuid))
 
     def get_stripe_invoice_url(self):
+        """Showing invoice for the very first payment after creating a booking."""
         invoice_url = ""
         if self.stripe_payment_intent_id:
             payment_intent = stripe.PaymentIntent.retrieve(self.stripe_payment_intent_id)
@@ -284,11 +284,28 @@ class Booking(BaseModel):
             self.save(force_update=True)
         return True
 
+    def mark_paid(self, payment_intent):
+        """Adding a payment information to the cleaning if there is only one cleaning in the booking"""
+        stripe_email = payment_intent["receipt_email"]
+        stripe_customer_id = payment_intent["customer"]
+
+        self.stripe_payment_intent_id = payment_intent["id"]
+        self.stripe_email = stripe_email
+        self.stripe_customer_id = stripe_customer_id
+        self.save(force_update=True)
+
+        cleanings = self.get_cleanings()
+        if self.get_cleanings().count() == 1:
+            cleaning = cleanings.last()
+            if not cleaning.get_invoices():
+                cleaning.create_initial_paid_invoice(stripe_email=stripe_email,
+                                                     stripe_customer_id=stripe_customer_id)
+
     def get_encoded_stripe_email(self):
         return urllib.parse.quote(self.stripe_email)
 
     def get_payment_status(self):
-        return "Yes" if self.is_paid else "Waiting payment"
+        return "Paid" if self.is_paid else "Waiting for payment"
 
     def get_is_regular(self):
         return self.regularity_type == Service.REGULARITY_TYPE_REGULAR
