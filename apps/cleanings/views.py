@@ -6,7 +6,9 @@ from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from .models import Cleaning, SpecialCleaningRequest
 from .forms import (ClientCleaningForm, CleanerCleaningForm, ManagerCleaningForm, SupportAgentCleaningForm,
-                    CleaningsFilterForm, CleaningIssueForm, MessageForm, SpecialRequestForm)
+                    CleaningsFilterForm, CleaningIssueForm,
+                    CleaningCommentOnlyForm,
+                    MessageForm, SpecialRequestForm)
 from apps.utils.mixins.access_mixins import (GeneralAdminAccessMixin, CleanerAccessMixin, ManagerAccessMixin,
                                              GeneralAdminOrManagerOrCleanerAccessMixin, ManagerOrCleanerAccessMixin,
                                              CleaningAccessMixin, CleanerOrSupportAccessMixin, ClientAccessMixin)
@@ -56,16 +58,20 @@ class CleaningCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, CleanerO
 
     def get_form_class(self):
         user = self.request.user
-        if user.is_client:
-            return ClientCleaningForm
-        elif self.get_object():
-            if user.is_cleaner:
-                return CleanerCleaningForm
-            elif user.is_manager:
-                return ManagerCleaningForm
-            elif user.is_support_agent:
-                return SupportAgentCleaningForm
-        return None
+        obj = self.get_object()
+        if obj.status == obj.STATUS_COMPLETED:
+            return CleaningCommentOnlyForm
+        else:
+            if user.is_client:
+                return ClientCleaningForm
+            elif obj:
+                if user.is_cleaner:
+                    return CleanerCleaningForm
+                elif user.is_manager:
+                    return ManagerCleaningForm
+                elif user.is_support_agent:
+                    return SupportAgentCleaningForm
+            return None
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

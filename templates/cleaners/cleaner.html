@@ -67,7 +67,7 @@
             <div class="col-lg-12">
                 <div class="h3 text-center">{% if request.user.is_cleaner %}Your {% endif %}Cleanings for Today</div>
                 {% with object.get_cleanings_for_today as cleanings %}
-                    {% include "cleanings/partials/cleanings_table_for_cleaner.html" %}
+                    {% include "cleanings/partials/cleanings_table.html" %}
                 {% endwith %}
                 <div class="text-center mt-3">
                     {% if request.user.is_cleaner %}

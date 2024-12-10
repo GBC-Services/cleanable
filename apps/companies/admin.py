@@ -1,5 +1,6 @@
 from django.contrib import admin
-from apps.companies.models import Company, CompanyServiceFeesSnapshot, CompanyServiceFee
+from apps.companies.models import Company, CompanyDocumentType, CompanyDocument, \
+    CompanyServiceFeesSnapshot, CompanyServiceFee
 from apps.cleaners.models import CompanyCleanerInvite
 from django.contrib.auth import get_user_model
 UserModel = get_user_model()
@@ -38,6 +39,18 @@ class CompanyAdmin(admin.ModelAdmin):
     search_fields = ["name", "uuid", "region__name"]
     list_filter = ["region"]
     inlines = [CompanyCleanerInviteInline, CompanyUserInline, CompanyServiceFeesSnapshotInline]
+
+
+@admin.register(CompanyDocumentType)
+class CompanyDocumentTypeAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in CompanyDocumentType._meta.fields]
+    search_fields = ["uuid", "name"]
+
+
+@admin.register(CompanyDocument)
+class CompanyDocumentAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in CompanyDocument._meta.fields]
+    search_fields = ["uuid", "type__name"]
 
 
 @admin.register(CompanyServiceFeesSnapshot)

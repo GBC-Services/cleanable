@@ -10,6 +10,11 @@ urlpatterns = [
     path('company-update', views.CompanyUpdateView.as_view(), name='company_update'),
     path('company/update/<uuid>', views.CompanyUpdateView.as_view(), name='any_company_update'),
 
+    path('company-document/<company_uuid>', views.CompanyDocumentCreateUpdateView.as_view(),
+         name='company_document_create'),
+    path('company-document-update/<company_uuid>/<uuid>', views.CompanyDocumentCreateUpdateView.as_view(),
+         name='company_document_update'),
+
     path('company-contacts/<uuid>', views.CompanyContactsView.as_view(), name='company_contacts'),
 
     path('company-service-fees/<uuid>', views.CompanyServiceFeesView.as_view(), name='any_company_service_fees'),

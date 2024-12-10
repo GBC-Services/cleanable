@@ -65,7 +65,10 @@ class CompaniesMixin:
     def get_object(self, queryset=None):
         user = self.request.user
         if user.is_manager:
-            return user.company
+            if self.kwargs.get("uuid"):
+                return super().get_object(queryset).filter(id=user.company.id)
+            else:
+                return user.company
         else:
             return super().get_object(queryset)
 

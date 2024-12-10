@@ -4,6 +4,7 @@
 {% block header_stuff %}
     <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
     <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    {% include "partials/select2_css.html" %}
 {% endblock header_stuff %}
 
 {% block content %}
@@ -18,3 +19,21 @@
         </div>
     </div>
 {% endblock %}
+
+{% block js_stuff %}
+    {% include "partials/select2_js.html" %}
+    <script>
+        $(document).ready(function (){
+            $("#id_services, .selectmultiple").select2({theme: 'bootstrap-5'}).trigger('change');
+
+            $(".timeinput").each(function (){
+                $(this).timepicker({
+                    timeFormat: 'h:i a',
+                    step: 15,
+                    minTime: "9:00 am",
+                    maxTime: "6:00 pm",
+                });
+            })
+        })
+    </script>
+{% endblock js_stuff %}

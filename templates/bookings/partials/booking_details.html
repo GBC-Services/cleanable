@@ -1,47 +1,13 @@
-<div class="h3 text-center">Booking Details</div>
-
 <div class="card mb-3">
     <div class="card-body">
+        <div class="h3 text-center">Booking Details</div>
         <div>
             {% if request.user.is_general_admin or request.user.is_support_agent or object.status == object.STATUS_NEW %}
                 <div class="alert {{ object.get_status_notification_class }}">
                     <b>Status:</b> {{ object.get_status_display }}
                 </div>
             {% endif %}
-            {% if object.status >= object.STATUS_IN_WORK %}
-                {% with object.get_last_cleaning as cleaning %}
-                    {% with cleaning.status as cleaning_status %}
-                        {% if cleaning_status <= 60 %}
-                            <div class="mt-3 mb-3">
-                                <div>
-                                    <ul class="list-unstyled">
-                                        <li><b>Cleaning Status:</b> {{ cleaning.get_status_display }}</li>
-                                        <li><b>Cleaner:</b> {{ cleaning.get_cleaners_as_text }}</li>
-                                        {% if cleaning.real_start_dt %}
-                                            <li><b>Start:</b> {{ cleaning.real_start_dt|date:"m/d/Y H:i:s" }}
-                                                {% with object.get_next_cleaning as cleaning %}
-                                                    {% if cleaning %}
-                                                        <a href="{% url 'calendar_data_getting' cleaning.uuid %}">
-                                                            Add to Calendar
-                                                        </a>
 
-                                                        22
-
-                                                        <a href="{{ cleaning.get_google_calendar_link }}">Add to gCal</a>
-                                                    {% endif %}
-                                                {% endwith %}
-                                            </li>
-                                        {% endif %}
-                                        {% if cleaning.real_end_dt %}
-                                            <li><b>Finish:</b> {{ cleaning.real_end_dt|date:"m/d/Y H:i:s"}}</li>
-                                        {% endif %}
-                                    </ul>
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% endwith %}
-                {% endwith %}
-            {% endif %}
             {% if object.user == request.user %}
                 {% if object.status == object.STATUS_NEW %}
                     <div class="mt-3 mb-3">
@@ -64,42 +30,13 @@
                 {% endif %}
             {% endif %}
         </div>
+
         <div>
             <ul class="list-unstyled">
                 <li><b>Created: </b>{{ object.created|date:"m/d/Y H:i:s" }}</li>
-                {% if object.get_is_regular %}
-                    <li><b>Cleaning time: </b> {{ object.get_scheduled_dt_range }}</li>
-                {% endif %}
                 <li><b>Regularity: </b>{{ object.get_regularity_type_display }}</li>
                 {% if object.get_is_regular %}
                     <li><b>Regularity Option:</b> {{ object.get_regularity_option_display }}</li>
-                    <li><b>Payments History:</b> </li>
-                    <ul>
-                        {% for payment in object.get_payments %}
-                            <li>{{ payment }}</li>
-                        {% endfor %}
-                        <li>
-                            {{ object.scheduled_date|date:"m/d/Y" }}
-                            {% if object.is_paid %}
-                                <a href="{% url 'stripe_receipt' object.uuid %}">
-                                invoice
-                            </a>
-                            {% else %}
-                                {{ object.get_payment_status }}
-                            {% endif %}
-                        </li>
-                    </ul>
-                {% else %}
-                    <li><b>Payment: </b>
-                        {% if object.is_paid %}
-                            Yes, <a href="{% url 'stripe_receipt' object.uuid %}">
-                                invoice
-                            </a>
-                        {% else %}
-                            {{ object.get_payment_status }}
-                        {% endif %}
-                    </li>
-                    <li class="mt-3"><b>Cleaning time: </b> {{ object.get_scheduled_dt_range }}</li>
                 {% endif %}
 
                 <li class=""><b>Place: </b>{{ object.place.get_full_address }}</li>
@@ -109,6 +46,12 @@
                     {% else %}
                         no comments
                     {% endif %}
+                </li>
+
+                <li class=""><b>Cleaners preferences: </b>
+                    {% for cleaner in booking.preferred_cleaners.all %}
+                        {{ cleaner }}{% if not forloop.last %},{% endif %}
+                    {% endfor %}
                 </li>
 
                 {% if request.user.is_general_admin %}
@@ -151,7 +94,6 @@
                     </tbody>
                 </table>
             </div>
-
         </div>
 
         {% if object.score_for_cleaner %}
@@ -166,7 +108,7 @@
         <div class="text-center mt-3">
             <button onclick="history.back()" class="btn btn-secondary">Back</button>
             {% if request.user.is_general_admin %}
-                <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary ms-1">Update</a>
+                <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary ms-1">Edit</a>
             {% endif %}
 
             {% if object.client == request.user %}
@@ -175,49 +117,10 @@
                         <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary">Score the Cleaner</a>
                     {% endif %}
                 {% elif not request.user.is_general_admin %}
-                    <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary">Update</a>
+                    <a href="{% url 'booking_update' object.uuid %}" class="btn btn-primary">Edit</a>
                 {% endif %}
             {% endif %}
         </div>
     </div>
 </div>
 
-{% if object.get_is_regular %}
-    <div class="card">
-        <div class="card-body">
-            <div class="h4 text-center">Scheduled Cleanings</div>
-
-            {% with object.get_cleanings as cleanings %}
-                <div class="table-responsive">
-                    <table id="cleanings_table" class="table table-bordered table-striped" width="100%">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Invoice</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for cleaning in cleanings %}
-                                <tr>
-                                    <td>{{ cleaning.scheduled_date }}</td>
-                                    <td>{{ cleaning.get_status_display }}</td>
-                                    <td>{{ cleaning.get_main_invoice }}</td>
-                                </tr>
-                            {% endfor %}
-                            <tr>
-                                <td>{{ object.scheduled_date }}</td>
-                                <td>{{ object.get_status_display }}</td>
-                                <td>
-                                    <a href="{{ object.get_stripe_invoice_url }}">
-                                        View <i class="fa fa-file" aria-hidden="true"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            {% endwith %}
-        </div>
-    </div>
-{% endif %}

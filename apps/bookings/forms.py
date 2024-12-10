@@ -23,7 +23,8 @@ class BookingForm(BookingOrCleaningDateTimeFormMixin, forms.ModelForm):
 
     class Meta:
         model = Booking
-        fields = ["regularity_type", "regularity_option", "comments", "special_request"]
+        fields = ["regularity_type", "regularity_option", "client_comments",
+                  "special_request", "preferred_cleaners"]
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user")
@@ -53,17 +54,31 @@ class BookingForm(BookingOrCleaningDateTimeFormMixin, forms.ModelForm):
                          f"<b>Total Fee:</b> <span id='total_fee'>{total_fee}</span> USD"
                          f"</div>")
 
-        self.fields["comments"].widget.attrs["rows"] = 3
+        self.fields["client_comments"].widget.attrs["rows"] = 3
 
+        special_request = None
         if user.is_authenticated and user.is_general_admin:
             self.fields["special_request"].widget.attrs["rows"] = 3
             special_request = Field("special_request")
         else:
             del self.fields["special_request"]
-            special_request = None
+
+        preferred_cleaners = None
+        if user.is_authenticated and user.is_client:
+            user_cleaners = user.get_cleaners()
+            if user_cleaners:
+                self.fields["preferred_cleaners"] = forms.ModelMultipleChoiceField(
+                    queryset=user_cleaners, required=False,
+                    label="Choose a cleaner (from your previous cleaners)")
+                preferred_cleaners = Field("preferred_cleaners")
+            else:
+                del self.fields["preferred_cleaners"]
+        else:
+            del self.fields["preferred_cleaners"]
 
         self.helper = FormHelper(self)
         self.helper.layout = Layout(
+            preferred_cleaners,
             Field("services", css_class="d-none"),
             Field("regularity_type"),
             Div(
@@ -72,7 +87,7 @@ class BookingForm(BookingOrCleaningDateTimeFormMixin, forms.ModelForm):
             Field("date"),
             Field("time_from"),
             Field("time_to"),
-            Field("comments"),
+            Field("client_comments"),
             fees_info,
             special_request,
             Div(
@@ -83,26 +98,17 @@ class BookingForm(BookingOrCleaningDateTimeFormMixin, forms.ModelForm):
         )
 
 
-class BookingCommentOnlyForm(forms.ModelForm):
-    score_for_cleaner = forms.IntegerField(min_value=1, max_value=5, label="Score for cleaner (1-5)")
+class LimitedBookingForm(forms.Form):
 
     class Meta:
         model = Booking
-        fields = ["comments", "score_for_cleaner", "feedback_for_cleaner"]
+        fields = ["client_comments"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if int(self.instance.status) != self.instance.STATUS_COMPLETED:
-            del self.fields["score_for_cleaner"]
-            del self.fields["feedback_for_cleaner"]
-        else:
-            del self.fields["comments"]
-
         self.helper = FormHelper(self)
         self.helper.layout = Layout(
-            Field("comments"),
-            Field("score_for_cleaner"),
-            Field("feedback_for_cleaner"),
+            Field("client_comments"),
             Div(
                 HTML('<button onclick="history.back()" class="btn btn-secondary me-1">Back</button>'),
                 Submit('submit', 'Save', css_class="btn btn-primary btn-block text-uppercase"),

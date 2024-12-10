@@ -58,6 +58,10 @@ div.dataTables_wrapper div.dataTables_filter{
     margin-bottom: 0.5em;
 }
 
+table tr th, table tr td{
+    vertical-align: middle;
+}
+
 table tr th:not(:nth-of-type(1)),
 table tr td:not(:nth-of-type(1)){
     text-align: right!important;
@@ -81,7 +85,7 @@ table tr td:not(:nth-of-type(1)){
 }
 
 .messages-container{
-    height: 200px;
+    height: 300px;
     overflow-y: auto;
 }
 

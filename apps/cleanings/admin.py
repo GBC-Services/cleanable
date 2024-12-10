@@ -1,11 +1,23 @@
 from django.contrib import admin
 from .models import (Cleaning, SpecialCleaningRequest, CleaningInvoice, CleaningStatusChange,
-                     CleanerForCleaning, CleaningChatMessage)
+                     CleanerForCleaning, CleaningChatMessage,
+                     FeedbackTagForCleaner, FeedbackTagForClient
+                     )
 
 
 class CleaningStatusChangeInline(admin.TabularInline):
     model = CleaningStatusChange
     extra = 0
+
+
+@admin.register(FeedbackTagForCleaner)
+class FeedbackTagForCleanerAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in FeedbackTagForCleaner._meta.fields]
+
+
+@admin.register(FeedbackTagForClient)
+class FeedbackTagForClientAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in FeedbackTagForClient._meta.fields]
 
 
 @admin.register(Cleaning)

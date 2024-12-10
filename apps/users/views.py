@@ -75,7 +75,7 @@ class ProfileUpdateView(LoginRequiredMixin, SuccessMessageMixin, generic.UpdateV
         return self.request.user
 
     def get_success_url(self):
-        return reverse("places")
+        return reverse("homepage")
 
 
 class VerificationsView(LoginRequiredMixin, generic.ListView):

@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'captcha',
     'crequest',
     'django_cleanup.apps.CleanupConfig',
+    'import_export',
 ]
 
 MIDDLEWARE = [
@@ -335,3 +336,5 @@ if IS_ON_PROD:
     }
 
 STRIPE_PRODUCT_ID = env.str("STRIPE_PRODUCT_ID")
+
+IMPORT_EXPORT_ESCAPE_FORMULAE_ON_EXPORT = True

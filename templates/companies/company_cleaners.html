@@ -33,6 +33,8 @@
                                     <th>Phone</th>
                                     <th>Status</th>
                                     <th>Joined Date</th>
+                                    <th>Districts preferred</th>
+                                    <th>Services preferred</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -43,12 +45,17 @@
                                     <td>
                                         {{ item.email }}
                                         {% if not item.user %}
-                                            <div><b>Invite link:</b> <span>{{ item.get_invite_link }}</span></div>
+                                            <div><b><a href="{{ item.get_invite_link }}">Invite link</a></b></div>
                                         {% endif %}
                                     </td>
                                     <td>{{ item.user.phone|default_if_none:"" }}</td>
                                     <td>{% if item.user %}Joined{% else %}Not joined{% endif %}</td>
                                     <td>{{ item.user.date_joined|date:"m/d/Y" }}</td>
+                                    <td>{{ item.user.cleaner_preferred_districts }}</td>
+                                    <td>{% for service in item.user.cleaner_preferred_service_types.all %}
+                                            <span class="badge bg-secondary">{{ service }}</span>
+                                        {% endfor %}
+                                    </td>
                                     <td>
                                         {% if item.user %}
                                             <a href="{% url 'cleaner_delete' item.user.uuid %}">Remove</a>

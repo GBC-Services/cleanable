@@ -6,6 +6,9 @@ from django.dispatch import receiver
 
 @receiver(post_save, sender=Booking, dispatch_uid='booking_post_save')
 def booking_post_save(sender, instance, created, **kwargs):
+    if created:
+        instance.create_cleaning()
+
     if instance.status != instance._original_fields["status"]:
         BookingStatusChange.objects.create(booking=instance, status=instance.status)
         if instance.status == instance.STATUS_CANCELLED_BY_SERVICE:

@@ -51,7 +51,7 @@
     {% include "partials/select2_js.html" %}
     <script>
         $(document).ready(function (){
-            $("#id_services").select2({theme: 'bootstrap-5'}).trigger('change');
+            $("#id_services, .selectmultiple").select2({theme: 'bootstrap-5'}).trigger('change');
 
             $(".timeinput").each(function (){
                 $(this).timepicker({
