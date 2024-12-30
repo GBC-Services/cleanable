@@ -8,6 +8,13 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                {% if request.user.is_general_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'general-dashboard' in request.path %}active{% endif %}"
+                           href="{% url 'general_dashboard' %}">General Dashboard</a>
+                    </li>
+                {% endif %}
+
                 {% if request.user.is_client %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'places' in request.path %}active{% endif %}"

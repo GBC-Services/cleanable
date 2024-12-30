@@ -15,8 +15,16 @@ import datetime
 import urllib.parse
 import stripe
 from django.utils import timezone
+import random
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+def generate_unique_numeric_id():
+    while True:
+        new_id = random.randint(100000, 9999999)
+        if not Booking.objects.filter(id=new_id).exists():
+            return new_id
 
 
 class DiscountCode(BaseModel):
@@ -70,6 +78,7 @@ class Booking(BaseModel):
         (PAYMENT_STATUS_FULLY_PAID, "Paid")
     )
 
+    short_id = models.PositiveIntegerField(unique=True, editable=False, default=generate_unique_numeric_id)
     status = models.PositiveIntegerField(choices=STATUSES, default=10)
     payment_status = models.PositiveIntegerField(choices=PAYMENT_STATUSES, default=PAYMENT_STATUS_NOT_PAID)
     regularity_type = models.PositiveIntegerField(choices=Service.REGULARITY_TYPES,
@@ -136,11 +145,12 @@ class Booking(BaseModel):
         if self.place:
             address = self.place.get_full_address()
             if address:
-                return f"{scheduled_date}, {address}, {self.total_fee_final} USD"
+                name = f"{scheduled_date}, {address}, {self.total_fee_final} USD"
             else:
-                return f"{scheduled_date}, {self.total_fee_final} USD"
+                name = f"{scheduled_date}, {self.total_fee_final} USD"
         else:
-            return f"{scheduled_date}, {self.total_fee_final} USD"
+            name = f"{scheduled_date}, {self.total_fee_final} USD"
+        return f"{self.uuid} {name}"
 
     def save(self, *args, **kwargs):
         if self.place and self.place_type == Place.PLACE_TYPE_HOUSE and not self.area_size:

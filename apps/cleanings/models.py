@@ -45,9 +45,9 @@ class Cleaning(BaseModel):
         (STATUS_STARTED, "Started"),
         (STATUS_COMPLETED, "Completed"),
         (STATUS_NOT_COMPLETED, "Not completed. Issue Reported"),
-        (STATUS_CANCELLED_BY_COMPANY, "Cancelled by company"),
-        (STATUS_CANCELLED_BY_SERVICE, "Cancelled by service"),
-        (STATUS_CANCELLED_BY_CLIENT, "Cancelled by client"),
+        (STATUS_CANCELLED_BY_COMPANY, "Canceled by company"),
+        (STATUS_CANCELLED_BY_SERVICE, "Canceled by service"),
+        (STATUS_CANCELLED_BY_CLIENT, "Canceled by client"),
     )
 
     PAYMENT_STATUS_NOT_PAID = 10

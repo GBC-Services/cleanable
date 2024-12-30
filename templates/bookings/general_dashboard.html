@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block header_stuff %}
+    <link href="//cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="//cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/sunny/jquery-ui.min.css"
+          integrity="sha512-bK9/5A1BwPJ8jYk16TyP4vJABe531hdsYppilDh7MFq7bZELm0QWZW7shSRAG/x5JO4LCX4YZGQM4tjRBakQkA=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock header_stuff %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="h3 text-center">General Dashboard</div>
+                <div class="text-center">{% crispy form %}</div>
+                <div class="tabs-links">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="not_assigned_tab"
+                                    data-bs-toggle="tab" data-bs-target="#not_assigned"
+                                    type="button" role="tab" aria-controls="not_assigned"
+                                    aria-selected="true">Not assigned</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="pending_completion_tab"
+                                    data-bs-toggle="tab" data-bs-target="#pending_completion"
+                                    type="button" role="tab" aria-controls="pending_completion"
+                                    aria-selected="false">Pending completion</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="completed_tab"
+                                    data-bs-toggle="tab" data-bs-target="#completed"
+                                    type="button" role="tab" aria-controls="completed"
+                                    aria-selected="false">Completed</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="not_completed_tab"
+                                    data-bs-toggle="tab" data-bs-target="#not_completed"
+                                    type="button" role="tab" aria-controls="not_completed"
+                                    aria-selected="false">Not Completed</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="cancelled_tab"
+                                    data-bs-toggle="tab" data-bs-target="#cancelled"
+                                    type="button" role="tab" aria-controls="cancelled"
+                                    aria-selected="false">Canceled</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="not_assigned" role="tabpanel" aria-labelledby="not_assigned_tab">
+                            {% with not_assigned_cleanings as cleanings %}
+                                {% include "cleanings/partials/cleanings_table_for_general_admin.html" %}
+                            {% endwith %}
+                        </div>
+                        <div class="tab-pane fade" id="pending_completion" role="tabpanel"
+                             aria-labelledby="pending_completion_tab">
+                            {% with pending_completion_cleanings as cleanings %}
+                                {% include "cleanings/partials/cleanings_table_for_general_admin.html" %}
+                            {% endwith %}
+                        </div>
+                        <div class="tab-pane fade" id="completed" role="tabpanel" aria-labelledby="completed_tab">
+                            {% with completed_cleanings as cleanings %}
+                                {% include "cleanings/partials/cleanings_table_for_general_admin.html" %}
+                            {% endwith %}
+                        </div>
+                        <div class="tab-pane fade" id="not_completed" role="tabpanel" aria-labelledby="not_completed_tab">
+                            {% with not_completed_cleanings as cleanings %}
+                                {% include "cleanings/partials/cleanings_table_for_general_admin.html" %}
+                            {% endwith %}
+                        </div>
+                        <div class="tab-pane fade" id="cancelled" role="tabpanel" aria-labelledby="cancelled_tab">
+                            {% with cancelled_cleanings as cleanings %}
+                                {% include "cleanings/partials/cleanings_table_for_general_admin.html" %}
+                            {% endwith %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block js_stuff %}
+    <script type="text/javascript" src="//cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <script>
+        $(document).ready(function(){
+            $("table").DataTable({
+                order: [],
+            })
+
+            $(".dateinput").each(function (){
+                $(this).datepicker({
+                    dateFormat: "mm/dd/yy",
+                    numberOfMonths: 1,
+                });
+            })
+
+            // On tab click, save the active tab to localStorage
+            $(".tabs-links button").on("click", function () {
+                tab_id = $(this).attr("id");
+                console.log(tab_id + "saved to localStorage")
+                localStorage.setItem("active_tab_id", tab_id); // Save the active tab to localStorage
+            });
+
+            // On page load, restore the active tab
+            var active_tab_id = localStorage.getItem("active_tab_id");
+            if (active_tab_id){
+                $("#"+active_tab_id).trigger("click");
+            }
+        })
+    </script>
+{% endblock js_stuff %}
