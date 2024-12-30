@@ -1,0 +1,31 @@
+{% load crispy_forms_tags %}
+{% load general %}
+
+<div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped cleanings-table">
+        <thead>
+        <tr>
+            <th>Booking</th>
+            <th>Cleaning</th>
+            <th>Status</th>
+            <th width="25%">Feedback</th>
+            <th>Score</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for cleaning in cleanings %}
+            <tr data-uuid="{{ cleaning.uuid }}">
+                <td><a href="{{ cleaning.booking.get_absolute_url }}">{{ cleaning.booking.created|date:"m/d/Y" }}</a></td>
+                <td>{{ cleaning.get_scheduled_dt_range }}</td>
+                <td>{{ cleaning.get_status_display }}</td>
+                <td>{{ cleaning.feedback_for_cleaner|default_if_none:"" }}</td>
+                <td>{{ cleaning.score_for_cleaner|default_if_none:"" }}</td>
+                <td>
+                    <a href="{% url 'cleaning' cleaning.uuid %}" class="btn btn-primary">View</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

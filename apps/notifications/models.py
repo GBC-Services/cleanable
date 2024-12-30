@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.conf import settings
 from twilio.rest import Client
 from django import forms
-from django.core.mail import EmailMessage
+from apps.utils.emails_sending import EmailsSending
 
 client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
 
@@ -69,9 +69,7 @@ class NotificationTemplate(BaseDictModel):
     def send_email(self, email):
         try:
             to_emails = [email]
-            email_message = EmailMessage(self.subject, self.text, to=to_emails)
-            email_message.content_subtype = "html"
-            email_message.send()
+            EmailsSending().send(self.subject, self.text, to_emails=to_emails)
             return True
         except:
             return False

@@ -33,6 +33,7 @@
 
         <div>
             <ul class="list-unstyled">
+                <li><b>Id:</b> {{ object.short_id|stringformat:"s" }}</li>
                 <li><b>Created: </b>{{ object.created|date:"m/d/Y H:i:s" }}</li>
                 <li><b>Regularity: </b>{{ object.get_regularity_type_display }}</li>
                 {% if object.get_is_regular %}
