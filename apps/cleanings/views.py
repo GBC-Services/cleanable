@@ -8,7 +8,7 @@ from .models import Cleaning, SpecialCleaningRequest
 from .forms import (ClientCleaningForm, CleanerCleaningForm, ManagerCleaningForm, SupportAgentCleaningForm,
                     CleaningsFilterForm, CleaningIssueForm,
                     CleaningCommentOnlyForm,
-                    MessageForm, SpecialRequestForm)
+                    MessageForm, SpecialRequestForm, DatesForm)
 from apps.utils.mixins.access_mixins import (GeneralAdminAccessMixin, CleanerAccessMixin, ManagerAccessMixin,
                                              GeneralAdminOrManagerOrCleanerAccessMixin, ManagerOrCleanerAccessMixin,
                                              CleaningAccessMixin, CleanerOrSupportAccessMixin, ClientAccessMixin)
@@ -17,6 +17,9 @@ from django.http import JsonResponse
 import datetime
 from django.urls import reverse
 from django.http import HttpResponse
+from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.utils import timezone
+from django.conf import settings
 
 
 class CleaningsView(LoginRequiredMixin,
@@ -216,3 +219,52 @@ class CalendarDataView(LoginRequiredMixin, ClientAccessMixin, generic.DetailView
         response = HttpResponse(obj.get_data_for_calendar())
         response['Content-Disposition'] = f"attachment; filename={obj.get_title()}.ics"
         return response
+
+
+class GeneralCleaningsDashboardView(LoginRequiredMixin, generic.TemplateView, generic.FormView):
+    template_name = "cleanings/general_cleanings_dashboard.html"
+    form_class = DatesForm
+    qs_kwargs = dict()
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated and not user.is_superuser:
+            return HttpResponseForbidden()
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = self.request.GET
+        kwargs = dict()
+        if data.get("date_from"):
+            kwargs["scheduled_start_dt__date__gte"] = datetime.datetime.strptime(data.get("date_from"), "%m/%d/%Y").date()
+        if data.get("date_to"):
+            kwargs["scheduled_date_dt__date__lte"] = datetime.datetime.strptime(data.get("date_to"), "%m/%d/%Y").date()
+
+        context["not_assigned_cleanings"] = Cleaning.objects.filter(**kwargs) \
+            .filter(status=Cleaning.STATUS_NOT_ASSIGNED)
+        context["pending_completion_cleanings"] = Cleaning.objects.filter(**kwargs) \
+            .filter(status=Cleaning.STATUS_NOT_STARTED)
+
+
+        delayed_since_dt = timezone.now() - datetime.timedelta(minutes=settings.NOT_STARTED_ALERTING_PERIOD_MINUTES)
+        context["pending_completion_delayed_cleanings"] = Cleaning.objects.filter(**kwargs) \
+            .filter(status__lte=Cleaning.STATUS_NOT_STARTED,
+                    real_start_dt__isnull=True, scheduled_start_dt__lte=delayed_since_dt)
+
+
+        context["completed_cleanings"] = Cleaning.objects.filter(**kwargs) \
+            .filter(status=Cleaning.STATUS_COMPLETED)
+
+        context["not_completed_cleanings"] = Cleaning.objects.filter(**kwargs) \
+            .filter(status=Cleaning.STATUS_NOT_COMPLETED)
+        context["cancelled_cleanings"] = Cleaning.objects.filter(**kwargs) \
+            .filter(status__gte=Cleaning.STATUS_CANCELLED_BY_COMPANY)
+        return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        data = self.request.GET
+        initial["date_from"] = data.get("date_from")
+        initial["date_to"] = data.get("date_to")
+        return initial

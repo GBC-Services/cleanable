@@ -1,0 +1,5 @@
+<div>
+Hi!
+{% if cleanings_nmb %}Number of not started cleanings in time for {{ report_date|date:"m/d/Y" }} is <b>{{ cleanings_nmb }}</b>. Find details by this <a href="{{ link }}">link</a>.
+{% else %}There were no not started cleanings on {{ report_date|date:"m/d/Y" }}.{% endif %}
+</div>

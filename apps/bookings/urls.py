@@ -29,6 +29,4 @@ urlpatterns = [
     path('booking-process/checkout', views.PublicBookingCheckoutView.as_view(), name='public_booking_step_5'),
 
     path('services-for-property-type', views.ServicesForPropertyTypeView.as_view(), name='services_for_property_type'),
-
-    path('general-dashboard', views.GeneralDashboardView.as_view(), name='general_dashboard'),
 ]

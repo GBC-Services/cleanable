@@ -29,4 +29,6 @@ urlpatterns = [
     path('special-request-reject/<uuid>', views.SpecialRequestRejectView.as_view(), name='special_request_reject'),
 
     path('calendar-data-getting/<uuid>', views.CalendarDataView.as_view(), name='calendar_data_getting'),
+
+    path('general-cleanings-dashboard', views.GeneralCleaningsDashboardView.as_view(), name='general_cleanings_dashboard'),
 ]

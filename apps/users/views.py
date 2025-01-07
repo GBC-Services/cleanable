@@ -20,7 +20,7 @@ class Homepage(generic.TemplateView):
         user = request.user
         if user.is_authenticated:
             if user.is_general_admin:
-                return HttpResponseRedirect(reverse("general_dashboard"))
+                return HttpResponseRedirect(reverse("general_cleanings_dashboard"))
             elif user.is_manager:
                 return HttpResponseRedirect(reverse("company"))
             elif user.is_cleaner:

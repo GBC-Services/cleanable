@@ -88,6 +88,7 @@ class BookingForm(BookingOrCleaningDateTimeFormMixin, forms.ModelForm):
             Field("time_from"),
             Field("time_to"),
             Field("client_comments"),
+            Field("images"),
             fees_info,
             special_request,
             Div(
@@ -345,27 +346,3 @@ class PublicBookingAddressForm(PlaceForm):
             raise forms.ValidationError("This area is out of the coverage at this moment.")
         return zip_code
 
-
-class DatesForm(forms.Form):
-    date_from = forms.DateField(required=False, input_formats=["%m/%d/%Y"], widget=forms.DateInput(format="%m/%d/%Y"))
-    date_to = forms.DateField(required=False, input_formats=["%m/%d/%Y"], widget=forms.DateInput(format="%m/%d/%Y"))
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["date_from"].widget.attrs["placeholder"] = "Date From"
-        self.fields["date_to"].widget.attrs["placeholder"] = "Date To"
-
-        self.helper = FormHelper(self)
-        self.helper.form_method = "GET"
-        self.helper.form_show_labels = False
-        self.helper.layout = Layout(
-            Div(
-                Div(Field("date_from", wrapper_class="me-1")),
-                Div(Field("date_to", wrapper_class="me-1")),
-                Div(HTML("<a href='/' class='btn btn-secondary btn-block text-uppercase me-1'>Clear</a>"),
-                    css_class="mb-3"),
-                Div(HTML("<button type='submit' class='btn btn-primary btn-block text-uppercase'>Apply</button>"),
-                    css_class="mb-3"),
-                css_class="d-flex justify-content-center align-items-end"
-            )
-        )

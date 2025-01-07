@@ -239,7 +239,6 @@ ACCOUNT_USERNAME_REQUIRED = False
 
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_EMAIL_VERIFICATION = env.str("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")  # none
-# print(ACCOUNT_EMAIL_VERIFICATION)
 
 ACCOUNT_LOGIN_ATTEMPTS_LIMIT = None  # this is managed by django-axes
 ACCOUNT_USER_DISPLAY = lambda user: user.email  # returns email instead of username (which is by default)
@@ -259,7 +258,7 @@ AXES_META_PRECEDENCE_ORDER = env.list("AXES_META_PRECEDENCE_ORDER", default=["HT
 
 LOGIN_REDIRECT_URL = "/"
 
-FROM_EMAIL = env.str("FROM_EMAIL", default="hello@cleanable.io")
+FROM_EMAIL = env.str("FROM_EMAIL", default="hello@tidify.co")
 DEFAULT_FROM_EMAIL = FROM_EMAIL
 
 IS_SENDING_EMAILS = env.bool("IS_SENDING_EMAILS", default=IS_ON_PROD)

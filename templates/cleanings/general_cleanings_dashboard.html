@@ -30,6 +30,12 @@
                                     aria-selected="false">Pending completion</button>
                         </li>
                         <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="pending_completion_delayed_tab"
+                                    data-bs-toggle="tab" data-bs-target="#pending_completion_delayed"
+                                    type="button" role="tab" aria-controls="pending_completion_delayed"
+                                    aria-selected="false">Pending delayed completion</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="completed_tab"
                                     data-bs-toggle="tab" data-bs-target="#completed"
                                     type="button" role="tab" aria-controls="completed"
@@ -57,6 +63,12 @@
                         <div class="tab-pane fade" id="pending_completion" role="tabpanel"
                              aria-labelledby="pending_completion_tab">
                             {% with pending_completion_cleanings as cleanings %}
+                                {% include "cleanings/partials/cleanings_table_for_general_admin.html" %}
+                            {% endwith %}
+                        </div>
+                        <div class="tab-pane fade" id="pending_completion_delayed" role="tabpanel"
+                             aria-labelledby="pending_completion_delayed_tab">
+                            {% with pending_completion_delayed_cleanings as cleanings %}
                                 {% include "cleanings/partials/cleanings_table_for_general_admin.html" %}
                             {% endwith %}
                         </div>
