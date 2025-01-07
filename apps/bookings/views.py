@@ -12,7 +12,7 @@ from apps.locations.models import ZipCode, RegionZipCode
 from .models import DiscountCode, BookingZipCodeSearch, Booking
 from .forms import (BookingForm, LimitedBookingForm, PlacesForm, PublicBookingZipCodeForm,
                     PublicBookingServicesSelectionForm,
-                    PublicBookingDateTimeForm, PublicBookingAddressForm, DatesForm)
+                    PublicBookingDateTimeForm, PublicBookingAddressForm)
 from .mixins.views import UserSessionMixin, CheckoutViewMixin
 from apps.services.models import ServiceFee
 from apps.cleanings.models import Cleaning
@@ -66,9 +66,6 @@ class BookingCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAcc
             object = self.get_object()
             if not object is None and object.status == object.STATUS_COMPLETED and object.score_for_cleaner:
                 return HttpResponseForbidden()
-
-            # if self.object and self.object.status != self.object.STATUS_NEW:
-            #     return HttpResponseRedirect(reverse("cleaning_update", kwargs=(dict(uuid=self.object.get_last_completed_cleaning()))))
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -480,42 +477,3 @@ class ServicesForPropertyTypeView(UserSessionMixin, NonAuthBookingMixin, generic
             pass
         return JsonResponse(response_data)
 
-
-class GeneralDashboardView(LoginRequiredMixin, generic.TemplateView, generic.FormView):
-    template_name = "bookings/general_dashboard.html"
-    form_class = DatesForm
-    qs_kwargs = dict()
-
-    def dispatch(self, request, *args, **kwargs):
-        user = request.user
-        if user.is_authenticated and not user.is_superuser:
-            return HttpResponseForbidden()
-        return super(GeneralDashboardView, self).dispatch(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        data = self.request.GET
-        kwargs = dict()
-        if data.get("date_from"):
-            kwargs["scheduled_date__gte"] = datetime.strptime(data.get("date_from"), "%m/%d/%Y").date()
-        if data.get("date_to"):
-            kwargs["scheduled_date__lte"] = datetime.strptime(data.get("date_to"), "%m/%d/%Y").date()
-        context["not_assigned_cleanings"] = Cleaning.objects.filter(**kwargs)\
-            .filter(status=Cleaning.STATUS_NOT_ASSIGNED)
-        context["pending_completion_cleanings"] = Cleaning.objects.filter(**kwargs)\
-            .filter(status=Cleaning.STATUS_NOT_STARTED)
-        context["completed_cleanings"] = Cleaning.objects.filter(**kwargs)\
-            .filter(status=Cleaning.STATUS_COMPLETED)
-
-        context["not_completed_cleanings"] = Cleaning.objects.filter(**kwargs)\
-            .filter(status=Cleaning.STATUS_NOT_COMPLETED)
-        context["cancelled_cleanings"] = Cleaning.objects.filter(**kwargs)\
-            .filter(status__gte=Cleaning.STATUS_CANCELLED_BY_COMPANY)
-        return context
-
-    def get_initial(self):
-        initial = super().get_initial()
-        data = self.request.GET
-        initial["date_from"] = data.get("date_from")
-        initial["date_to"] = data.get("date_to")
-        return initial

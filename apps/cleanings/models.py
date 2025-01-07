@@ -101,6 +101,8 @@ class Cleaning(BaseModel):
     feedback_for_client = models.TextField(blank=True, null=True, default=None)
     feedback_tags_for_client = models.ManyToManyField(FeedbackTagForClient, blank=True, default=None)
 
+    is_delayed = models.BooleanField(default=False)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._original_fields = {}
