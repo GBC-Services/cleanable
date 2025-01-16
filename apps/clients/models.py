@@ -64,3 +64,8 @@ class Place(BaseDictModel):
             return f"{self.address}, {self.apartment_nmb}, {self.city.name}, {self.state.name}, {self.zip_code.value}"
         else:
             return self.address
+
+
+class MapboxRequest(BaseModel):
+    user = models.ForeignKey(User, blank=True, null=True, default=None, on_delete=models.SET_NULL)
+    is_allowed = models.BooleanField(default=True)

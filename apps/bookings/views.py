@@ -61,6 +61,9 @@ class BookingCreateUpdateView(LoginRequiredMixin, SuccessMessageMixin, ClientAcc
             if not self.place:
                 return HttpResponseRedirect(reverse("place_selection"))
 
+            if not self.place.region:
+                return HttpResponseRedirect(reverse("region_zone_not_covered"))
+
             """To prevent updating after if the booking was completed 
             and the score for the cleaner has been already given"""
             object = self.get_object()

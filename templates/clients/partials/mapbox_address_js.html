@@ -1,4 +1,4 @@
-<script id="mapbox-search-web" defer="" src="//api.mapbox.com/search-js/v1.0.0-beta.16/web.js"></script>
+<script defer="" src="//api.mapbox.com/search-js/v1.0.0-beta.16/web.js"></script>
 <script>
     let autofillCollection;
     function setValidationText(color, msg, clear = false) {
@@ -12,8 +12,52 @@
         validatation_el.removeClass("d-none");
     }
 
+    // You can wrap this in $(document).ready(...) or similar
+    $(function() {
+        // We only want to initialize the Mapbox Autofill if the user actually tries to use it.
+        // For example, we can attach to the "focus" event on the address input:
+        $("#id_address").on("focus", function() {
+            // Once the user focuses the address input, we check with the server:
+            checkAndInitializeAutofill();
+        });
+    });
+
+
+    function checkAndInitializeAutofill() {
+        // Remove the event listener so we don't recheck each time the user focuses in/out
+        $("#id_address").off("focus");
+
+        data = {
+            "csrfmiddlewaretoken": $("#csrf_getting_form").find("[name='csrfmiddlewaretoken']").val()
+        }
+        url = "{% url 'log_mapbox_request' %}";
+        // 1. AJAX call to your local check-limit endpoint
+        $.ajax({
+            url: url,
+            method: 'POST',
+            data: data,
+            success: function(response) {
+                if (response.is_allowed) {
+                    // 2. If allowed, proceed with Autofill initialization
+                    initializeMapboxAutofill();
+                } else {
+                    // 3. If not allowed, disable input or show message
+                    $("#id_address").prop("disabled", true);
+                    alert("We have reached the usage limit for Address Autofill. Please try again later.");
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error checking usage limit:", error);
+                // Decide how to handle server/connection errors.
+                // For safety, you might want to disable or skip to avoid any unexpected charges.
+                $("#id_address").prop("disabled", true);
+                alert("Could not confirm usage limit. Address Autofill is disabled.");
+            }
+        });
+    }
+
     // Autofill initialization
-    $("#mapbox-search-web").on("load", function () {
+    function initializeMapboxAutofill() {
         mapboxsearch.config.accessToken = "{{ mapbox_token }}";
         autofillCollection = mapboxsearch.autofill({
             options: { country: 'us' }
@@ -54,10 +98,11 @@
                 $("#minimap_container").removeClass("d-none");
             }
         );
-    })
+    }
 
     $("form [type='submit']").on("click", async function(e){
         e.preventDefault();
+
         form = $(this).closest("form");
         js_form = form[0];
         result = await mapboxsearch.confirmAddress(js_form, {
