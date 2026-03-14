@@ -13,7 +13,7 @@
  * All API calls go through the shared apiFetch client.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
   ConnectedDevice,
@@ -22,6 +22,7 @@ import type {
   OAuthURLResponse,
   DeviceProvider,
   VoicePlatform,
+  EmergencyLockoutResponse,
   PROVIDER_INFO as ProviderInfoType,
 } from "@/types/iot";
 import { PROVIDER_INFO, VOICE_PLATFORM_INFO } from "@/types/iot";
@@ -74,6 +75,11 @@ export default function SmartHomePage() {
           Connect smart locks, manage access codes, and link voice assistants.
         </p>
       </div>
+
+      {/* Emergency Lockout Banner */}
+      {devices.length > 0 && (
+        <EmergencyLockoutBanner onLockout={fetchData} />
+      )}
 
       {/* Tab Navigation */}
       <div className="flex gap-1 rounded-lg bg-[hsl(var(--muted))] p-1">
@@ -513,6 +519,222 @@ function AccessTokensPanel({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Voice Assistant Links Panel
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Emergency Lockout Banner
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function EmergencyLockoutBanner({ onLockout }: { onLockout: () => void }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [result, setResult] = useState<EmergencyLockoutResponse | null>(null);
+  const [lockoutError, setLockoutError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  // ── WebSocket for real-time lockout confirmation ─────────────
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws/alerts/`;
+
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "emergency_lockout" && data.priority === "critical") {
+            // Another lockout event arrived (possibly from Support Architect)
+            onLockout();
+          }
+        } catch {
+          // Ignore malformed messages
+        }
+      };
+
+      ws.onerror = () => {
+        // WebSocket is optional — lockout works without it
+      };
+
+      return () => {
+        ws.close();
+      };
+    } catch {
+      // WebSocket not available — fine, lockout still works via REST
+      return undefined;
+    }
+  }, [onLockout]);
+
+  const handleLockout = async () => {
+    setActivating(true);
+    setLockoutError(null);
+    setResult(null);
+
+    try {
+      const res = await api.post<EmergencyLockoutResponse>(
+        "/iot/emergency-lockout/",
+        { reason: "Resident-initiated emergency lockout via dashboard" }
+      );
+      setResult(res);
+      setShowConfirm(false);
+      onLockout(); // refresh device/token lists
+    } catch (err: any) {
+      setLockoutError(
+        err?.body?.detail ?? err?.message ?? "Lockout failed. Please try again."
+      );
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border-2 border-red-300 bg-red-50 p-5 dark:border-red-700 dark:bg-red-950/30">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
+            <svg
+              className="h-5 w-5 text-red-600 dark:text-red-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-red-800 dark:text-red-300">
+              Emergency Lockout
+            </h2>
+            <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">
+              Instantly revoke all active Service Pro access codes across all
+              your devices. This cannot be undone — new codes must be
+              regenerated.
+            </p>
+          </div>
+        </div>
+
+        {!showConfirm && !result && (
+          <button
+            onClick={() => setShowConfirm(true)}
+            className="shrink-0 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:bg-red-700 dark:hover:bg-red-600"
+          >
+            Activate Lockout
+          </button>
+        )}
+      </div>
+
+      {/* Confirmation step */}
+      {showConfirm && !result && (
+        <div className="mt-4 rounded-md border border-red-200 bg-white p-4 dark:border-red-800 dark:bg-red-950/50">
+          <p className="text-sm font-medium text-red-800 dark:text-red-300">
+            Are you sure? This will:
+          </p>
+          <ul className="mt-2 space-y-1 text-xs text-red-700 dark:text-red-400">
+            <li className="flex items-center gap-1.5">
+              <span className="text-red-500">•</span>
+              Revoke all active access codes immediately
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span className="text-red-500">•</span>
+              Disable Smart Access on all your devices
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span className="text-red-500">•</span>
+              Alert Support Architects for immediate follow-up
+            </li>
+          </ul>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={handleLockout}
+              disabled={activating}
+              className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-red-700 dark:hover:bg-red-600"
+            >
+              {activating ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Activating...
+                </span>
+              ) : (
+                "Confirm Emergency Lockout"
+              )}
+            </button>
+            <button
+              onClick={() => setShowConfirm(false)}
+              disabled={activating}
+              className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success result */}
+      {result && (
+        <div className="mt-4 rounded-md border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <div className="flex items-center gap-2">
+            <svg
+              className="h-5 w-5 text-green-600 dark:text-green-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+            <p className="text-sm font-semibold text-green-800 dark:text-green-300">
+              Lockout Activated
+            </p>
+          </div>
+          <p className="mt-1 text-xs text-green-700 dark:text-green-400">
+            {result.revoked_count} access code(s) revoked across{" "}
+            {result.devices_locked} device(s). Support Architects have been
+            alerted.
+          </p>
+          {result.failed_provider_revocations.length > 0 && (
+            <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-400">
+              Note: {result.failed_provider_revocations.length} code(s) could
+              not be revoked at the lock provider. They have been marked as
+              revoked locally.
+            </p>
+          )}
+          <button
+            onClick={() => setResult(null)}
+            className="mt-2 text-xs text-green-600 underline hover:no-underline dark:text-green-400"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Error state */}
+      {lockoutError && (
+        <div className="mt-3 rounded-md border border-red-200 bg-red-100 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/40 dark:text-red-300">
+          {lockoutError}
+          <button
+            onClick={() => setLockoutError(null)}
+            className="ml-2 underline hover:no-underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
     </div>
   );
 }

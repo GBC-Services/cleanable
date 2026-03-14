@@ -212,3 +212,63 @@ class OAuthURLRequestSerializer(serializers.Serializer):
 
     provider = serializers.ChoiceField(choices=["august", "yale", "smartthings"])
     redirect_uri = serializers.URLField()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  Emergency Security Serializers
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class EmergencyRevokeAccessSerializer(serializers.Serializer):
+    """
+    Input for the /iot/revoke-access/ endpoint.
+
+    Required by Support Architects and Agency Owners to immediately
+    revoke all active access tokens for a specific Service Pro at
+    a specific property.
+    """
+
+    service_pro_id = serializers.IntegerField(
+        help_text="The ID of the Service Pro whose access should be revoked.",
+    )
+    place_id = serializers.IntegerField(
+        help_text="The ID of the property (Place) to revoke access for.",
+    )
+    reason = serializers.CharField(
+        max_length=1000,
+        help_text=(
+            "Mandatory justification for the emergency revocation. "
+            "Minimum 10 characters."
+        ),
+    )
+
+    def validate_reason(self, value):
+        if len(value.strip()) < 10:
+            raise serializers.ValidationError(
+                "Reason must be at least 10 characters."
+            )
+        return value.strip()
+
+
+class EmergencyLockoutRequestSerializer(serializers.Serializer):
+    """
+    Input for the Resident's Emergency Lockout button.
+
+    place_id is optional — if omitted, ALL of the Resident's
+    active devices are locked out.
+    """
+
+    place_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text=(
+            "Optional property ID.  If provided, only devices at "
+            "that property are locked out.  Omit to lock all."
+        ),
+    )
+    reason = serializers.CharField(
+        max_length=1000,
+        required=False,
+        default="Resident-initiated emergency lockout",
+        help_text="Optional reason for the lockout.",
+    )

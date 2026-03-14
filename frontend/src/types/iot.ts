@@ -101,6 +101,20 @@ export interface ProviderLock {
   status: string;
 }
 
+// ── Emergency Lockout Types ──────────────────────────────────────
+
+export interface EmergencyLockoutPayload {
+  place_id?: number | null;
+  reason?: string;
+}
+
+export interface EmergencyLockoutResponse {
+  detail: string;
+  revoked_count: number;
+  devices_locked: number;
+  failed_provider_revocations: string[];
+}
+
 // ── Provider Metadata ───────────────────────────────────────────────
 
 export const PROVIDER_INFO: Record<

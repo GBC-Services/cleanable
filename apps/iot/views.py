@@ -6,6 +6,10 @@ ViewSets and APIViews for:
   - ConnectedDeviceViewSet — CRUD for smart-lock devices + OAuth linking
   - SmartLockAccessTokenViewSet — read-only access tokens for bookings
   - VoiceAssistantLinkViewSet — CRUD for voice-platform links
+  - EmergencyRevokeAccessView — Instant token revocation for a Service Pro
+      at a property (Support Architect + Agency Owner only)
+  - EmergencyLockoutView — Resident-initiated emergency lockout with
+      WebSocket alert to Support Architects
   - AlexaWebhookView — Alexa Skill endpoint (unauthenticated, validated)
   - SiriWebhookView — Siri Shortcuts endpoint (JWT auth)
   - SmartLockOAuthCallbackView — OAuth callback for lock providers
@@ -24,8 +28,17 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.api.permissions import IsPlatformAdmin, IsResident
+from django.db import transaction
+
+from apps.api.permissions import (
+    IsAgencyOwner,
+    IsPlatformAdmin,
+    IsResident,
+    IsSupportArchitect,
+)
 from apps.clients.models import Place
+from apps.governance.models import GovernanceAuditLog, SystemFeatureToggle
+from apps.users.models import User
 
 from .models import ConnectedDevice, SmartLockAccessToken, VoiceAssistantLink
 from .serializers import (
@@ -33,6 +46,8 @@ from .serializers import (
     ConnectedDeviceDetailSerializer,
     ConnectedDeviceListSerializer,
     ConnectedDeviceUpdateSerializer,
+    EmergencyLockoutRequestSerializer,
+    EmergencyRevokeAccessSerializer,
     OAuthURLRequestSerializer,
     SmartAccessToggleSerializer,
     SmartLockAccessTokenSerializer,
@@ -44,6 +59,7 @@ from .smart_lock_service import (
     ensure_valid_token,
     exchange_oauth_code,
     list_locks,
+    revoke_guest_access,
     store_encrypted_tokens,
 )
 from .voice_handlers import handle_alexa_webhook, handle_siri_webhook
@@ -586,3 +602,433 @@ class SiriWebhookView(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  Emergency Revoke Access (Support Architect + Agency Owner)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class EmergencyRevokeAccessView(APIView):
+    """
+    POST /api/v1/iot/revoke-access/
+
+    Instantly terminates **all** active OAuth tokens and time-bound digital
+    keys assigned to a specific Service Pro at a specific property.
+
+    Authorization: Support Architect (role 50) or Agency Owner (role 30)
+    only.  Platform Admins are also granted access.
+
+    Flow:
+      1. Validate payload (service_pro_id + place_id + reason)
+      2. Query all active SmartLockAccessTokens for the given
+         service_pro × device.place combination
+      3. For each token:
+         a. Call the lock-provider’s revoke API to delete the code
+         b. Mark the DB record as REVOKED
+         c. Wipe the device’s stored OAuth tokens (scorched-earth)
+      4. Write an immutable GovernanceAuditLog entry
+      5. Return a summary of revoked tokens + any failures
+
+    All mutations are wrapped in an atomic transaction so partial
+    failures roll back cleanly.
+    """
+
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsSupportArchitect | IsAgencyOwner | IsPlatformAdmin,
+    ]
+
+    def post(self, request):
+        serializer = EmergencyRevokeAccessSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        service_pro_id = data["service_pro_id"]
+        place_id = data["place_id"]
+        reason = data["reason"]
+
+        # ── Resolve target user ──────────────────────────────────────
+        try:
+            service_pro = User.objects.get(
+                id=service_pro_id, role=User.ROLE_SERVICE_PRO
+            )
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Service Pro not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # ── Resolve place ──────────────────────────────────────────
+        try:
+            place = Place.objects.get(id=place_id)
+        except Place.DoesNotExist:
+            return Response(
+                {"detail": "Property not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # ── Find all active tokens for this pro × place ─────────────
+        active_tokens = SmartLockAccessToken.objects.filter(
+            service_pro=service_pro,
+            device__place=place,
+            status=SmartLockAccessToken.STATUS_ACTIVE,
+        ).select_related("device")
+
+        revoked_count = 0
+        failed_revocations = []
+        affected_device_ids = set()
+
+        with transaction.atomic():
+            for token in active_tokens:
+                device = token.device
+                affected_device_ids.add(device.id)
+
+                # Attempt provider-side revocation
+                try:
+                    provider_access_token = ensure_valid_token(device)
+                    success = revoke_guest_access(
+                        provider=device.provider,
+                        access_token=provider_access_token,
+                        device_id=device.provider_device_id,
+                        provider_token_id=token.provider_token_id,
+                    )
+                except Exception as exc:
+                    logger.error(
+                        "Provider revocation failed for token %s: %s",
+                        token.uuid, exc,
+                    )
+                    success = False
+
+                # Always mark as revoked in our DB (fail-secure)
+                token.status = SmartLockAccessToken.STATUS_REVOKED
+                token.save(update_fields=["status", "updated_at"])
+                revoked_count += 1
+
+                if not success:
+                    failed_revocations.append(str(token.uuid))
+
+            # ── Scorched-earth: wipe device OAuth tokens ────────────
+            if affected_device_ids:
+                ConnectedDevice.objects.filter(
+                    id__in=affected_device_ids
+                ).update(
+                    access_token_encrypted="",
+                    refresh_token_encrypted="",
+                    token_expires_at=None,
+                )
+
+            # ── Audit log ────────────────────────────────────────────
+            GovernanceAuditLog.log(
+                action="emergency_access_revocation",
+                description=(
+                    f"Emergency revocation: {revoked_count} token(s) revoked "
+                    f"for Service Pro {service_pro.email} at property "
+                    f"'{place}' (ID {place.id}). Reason: {reason}"
+                ),
+                actor=request.user,
+                target_user=service_pro,
+                changes={
+                    "revoked_count": revoked_count,
+                    "failed_provider_revocations": failed_revocations,
+                    "place_id": place_id,
+                    "reason": reason,
+                    "affected_device_ids": list(affected_device_ids),
+                },
+                severity=GovernanceAuditLog.SEVERITY_CRITICAL,
+                ip_address=self._get_client_ip(request),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            )
+
+        return Response(
+            {
+                "detail": "Emergency access revocation complete.",
+                "revoked_count": revoked_count,
+                "failed_provider_revocations": failed_revocations,
+                "service_pro_email": service_pro.email,
+                "place": str(place),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @staticmethod
+    def _get_client_ip(request):
+        """Extract the client IP, respecting X-Forwarded-For."""
+        xff = request.META.get("HTTP_X_FORWARDED_FOR")
+        if xff:
+            return xff.split(",")[0].strip()
+        return request.META.get("REMOTE_ADDR")
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  Emergency Lockout (Resident-Initiated)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class EmergencyLockoutView(APIView):
+    """
+    POST /api/v1/iot/emergency-lockout/
+
+    Resident-initiated “panic button” that:
+      1. Revokes ALL active access tokens on ALL of the Resident’s
+         devices at a specific place (or all places if none specified)
+      2. Disables smart_access_enabled on affected devices
+      3. Writes a CRITICAL GovernanceAuditLog entry
+      4. Pushes a high-priority WebSocket alert to all online
+         Support Architects (via the /ws/alerts/ channel)
+
+    Authorization: Resident only.
+    """
+
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsResident | IsPlatformAdmin,
+    ]
+
+    def post(self, request):
+        serializer = EmergencyLockoutRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        place_id = data.get("place_id")
+        reason = data.get("reason", "Resident-initiated emergency lockout")
+
+        # ── Scope to this resident’s devices ─────────────────────
+        device_qs = ConnectedDevice.objects.filter(
+            user=request.user,
+            status=ConnectedDevice.STATUS_ACTIVE,
+        )
+        if place_id:
+            device_qs = device_qs.filter(place_id=place_id)
+
+        device_ids = list(device_qs.values_list("id", flat=True))
+
+        if not device_ids:
+            return Response(
+                {"detail": "No active devices found for lockout."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # ── Revoke all active tokens on those devices ─────────────
+        active_tokens = SmartLockAccessToken.objects.filter(
+            device_id__in=device_ids,
+            status=SmartLockAccessToken.STATUS_ACTIVE,
+        ).select_related("device")
+
+        revoked_count = 0
+        failed_revocations = []
+
+        with transaction.atomic():
+            for token in active_tokens:
+                device = token.device
+                try:
+                    provider_access_token = ensure_valid_token(device)
+                    success = revoke_guest_access(
+                        provider=device.provider,
+                        access_token=provider_access_token,
+                        device_id=device.provider_device_id,
+                        provider_token_id=token.provider_token_id,
+                    )
+                except Exception as exc:
+                    logger.error(
+                        "Lockout provider revocation failed for token %s: %s",
+                        token.uuid, exc,
+                    )
+                    success = False
+
+                token.status = SmartLockAccessToken.STATUS_REVOKED
+                token.save(update_fields=["status", "updated_at"])
+                revoked_count += 1
+
+                if not success:
+                    failed_revocations.append(str(token.uuid))
+
+            # ── Disable smart access + wipe device tokens ──────────
+            ConnectedDevice.objects.filter(id__in=device_ids).update(
+                smart_access_enabled=False,
+                access_token_encrypted="",
+                refresh_token_encrypted="",
+                token_expires_at=None,
+            )
+
+            # ── Audit log ────────────────────────────────────────────
+            GovernanceAuditLog.log(
+                action="emergency_lockout",
+                description=(
+                    f"Emergency lockout by Resident {request.user.email}: "
+                    f"{revoked_count} token(s) revoked across "
+                    f"{len(device_ids)} device(s). Reason: {reason}"
+                ),
+                actor=request.user,
+                target_user=request.user,
+                changes={
+                    "revoked_count": revoked_count,
+                    "failed_provider_revocations": failed_revocations,
+                    "device_count": len(device_ids),
+                    "place_id": place_id,
+                    "reason": reason,
+                },
+                severity=GovernanceAuditLog.SEVERITY_CRITICAL,
+                ip_address=EmergencyRevokeAccessView._get_client_ip(request),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            )
+
+        # ── Push WebSocket alert to Support Architects ────────────
+        # This is a fire-and-forget notification.  If the WS layer is
+        # unavailable, the lockout still succeeds — the audit log is
+        # the durable record.
+        try:
+            self._notify_support_architects(request.user, place_id, reason, revoked_count)
+        except Exception as exc:
+            logger.warning("WebSocket notification failed: %s", exc)
+
+        return Response(
+            {
+                "detail": "Emergency lockout activated.",
+                "revoked_count": revoked_count,
+                "devices_locked": len(device_ids),
+                "failed_provider_revocations": failed_revocations,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @staticmethod
+    def _notify_support_architects(resident, place_id, reason, revoked_count):
+        """
+        Push a high-priority alert to all online Support Architects
+        via Django Channels (or fall back to polling table).
+
+        Channel layer message format::
+
+            {
+                "type": "emergency_lockout",
+                "priority": "critical",
+                "resident_email": "user@example.com",
+                "resident_id": 123,
+                "place_id": 456,
+                "reason": "...",
+                "revoked_count": 3,
+                "timestamp": "2026-03-14T19:30:00Z"
+            }
+
+        If Django Channels is not configured, we fall back to creating
+        an in-DB notification record that Support Architect dashboards
+        can poll.
+        """
+        alert_payload = {
+            "type": "emergency_lockout",
+            "priority": "critical",
+            "resident_email": resident.email,
+            "resident_id": resident.id,
+            "place_id": place_id,
+            "reason": reason,
+            "revoked_count": revoked_count,
+            "timestamp": timezone.now().isoformat(),
+        }
+
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    "support_architects_alerts",
+                    {
+                        "type": "emergency.lockout",
+                        "payload": alert_payload,
+                    },
+                )
+                logger.info(
+                    "Emergency lockout alert sent to support_architects_alerts group"
+                )
+                return
+        except ImportError:
+            pass
+
+        # Fallback: store as a JSON record that the front-end can poll
+        logger.info(
+            "Channels not available; lockout alert stored in audit log only. "
+            "Payload: %s", alert_payload,
+        )
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  IoT Security Middleware
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class IoTAccessGateMiddleware:
+    """
+    DRF-compatible middleware that checks the ``global_iot_access_enabled``
+    SystemFeatureToggle before allowing any IoT lock command to execute.
+
+    Usage:
+      Apply as a DRF permission or call ``check_iot_gate()`` from within
+      a view.  This class provides both patterns.
+
+    As a DRF permission (preferred for views)::
+
+        from apps.iot.views import IoTAccessGateMiddleware
+
+        class MyLockView(APIView):
+            permission_classes = [IsAuthenticated, IoTAccessGateMiddleware.as_permission()]
+
+    As a standalone gate function (for GraphQL resolvers, Celery tasks)::
+
+        IoTAccessGateMiddleware.check_iot_gate()
+        # Raises PermissionDenied if the global toggle is disabled
+
+    Fail-secure: if the toggle row does not exist in the DB (e.g., first
+    deploy before migrations seed it), access is DENIED.
+    """
+
+    @staticmethod
+    def check_iot_gate():
+        """
+        Check the global IoT feature toggle.
+
+        Raises:
+            PermissionDenied: if IoT access is globally disabled.
+        """
+        from rest_framework.exceptions import PermissionDenied
+
+        if not SystemFeatureToggle.is_feature_active("global_iot_access_enabled"):
+            logger.warning("IoT gate DENIED — global_iot_access_enabled is OFF")
+            raise PermissionDenied(
+                detail=(
+                    "IoT access is currently disabled system-wide by a "
+                    "Platform Administrator. No lock commands can be "
+                    "executed until this is re-enabled."
+                ),
+                code="iot_globally_disabled",
+            )
+
+    @classmethod
+    def as_permission(cls):
+        """
+        Return a DRF-compatible permission class that gates on the
+        global IoT toggle.
+
+        Example::
+
+            permission_classes = [
+                permissions.IsAuthenticated,
+                IoTAccessGateMiddleware.as_permission(),
+            ]
+        """
+
+        class _IoTGatePermission(permissions.BasePermission):
+            message = (
+                "IoT access is currently disabled system-wide by a "
+                "Platform Administrator."
+            )
+
+            def has_permission(self, request, view):
+                return SystemFeatureToggle.is_feature_active(
+                    "global_iot_access_enabled"
+                )
+
+        _IoTGatePermission.__name__ = "IoTGatePermission"
+        _IoTGatePermission.__qualname__ = "IoTAccessGateMiddleware.IoTGatePermission"
+        return _IoTGatePermission

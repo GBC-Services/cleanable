@@ -95,4 +95,16 @@ urlpatterns = [
         voice_link_delete,
         name="iot-voice-links-delete",
     ),
+
+    # ── Emergency Security Endpoints ──────────────────────────────────
+    path(
+        "revoke-access/",
+        views.EmergencyRevokeAccessView.as_view(),
+        name="iot-revoke-access",
+    ),
+    path(
+        "emergency-lockout/",
+        views.EmergencyLockoutView.as_view(),
+        name="iot-emergency-lockout",
+    ),
 ]

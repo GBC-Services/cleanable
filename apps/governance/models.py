@@ -574,6 +574,8 @@ class GovernanceAuditLog(models.Model):
     ACTION_BREAK_GLASS_EXPIRED = "break_glass_expired"
     ACTION_OVERRIDE_APPLIED = "override_applied"
     ACTION_OVERRIDE_REVERTED = "override_reverted"
+    ACTION_EMERGENCY_REVOCATION = "emergency_access_revocation"
+    ACTION_EMERGENCY_LOCKOUT = "emergency_lockout"
     ACTION_CHOICES = (
         (ACTION_FEATURE_TOGGLED, "System Feature Toggled"),
         (ACTION_PRIVACY_UPDATED, "Privacy Preferences Updated"),
@@ -583,6 +585,8 @@ class GovernanceAuditLog(models.Model):
         (ACTION_BREAK_GLASS_EXPIRED, "Break-Glass Expired"),
         (ACTION_OVERRIDE_APPLIED, "Privacy Override Applied"),
         (ACTION_OVERRIDE_REVERTED, "Privacy Override Reverted"),
+        (ACTION_EMERGENCY_REVOCATION, "Emergency Access Revocation"),
+        (ACTION_EMERGENCY_LOCKOUT, "Emergency Lockout"),
     )
 
     # ── Severity ──────────────────────────────────────────────────────
