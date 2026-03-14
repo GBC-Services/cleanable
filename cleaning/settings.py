@@ -287,6 +287,8 @@ MAPBOX_TOKEN = env.str("MAPBOX_TOKEN", default="")
 
 STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY", default="")
 STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_CONNECT_PLATFORM_FEE_PERCENT = env.float("STRIPE_CONNECT_PLATFORM_FEE_PERCENT", default=15.0)
 
 # # Your Account SID from twilio.com/console
 # account_sid = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
@@ -337,6 +339,24 @@ if IS_ON_PROD:
 STRIPE_PRODUCT_ID = env.str("STRIPE_PRODUCT_ID")
 
 IMPORT_EXPORT_ESCAPE_FORMULAE_ON_EXPORT = True
+
+# ── API Layer Configuration ───────────────────────────────────────────
+from .api_settings import *  # noqa: F401,F403
+
+# Extend INSTALLED_APPS with DRF, JWT, CORS, and the API app
+INSTALLED_APPS += API_APPS  # noqa: F405
+
+# Insert CORS middleware before CommonMiddleware
+for mw, before in API_MIDDLEWARE_INSERT:  # noqa: F405
+    try:
+        idx = MIDDLEWARE.index(before)
+        MIDDLEWARE.insert(idx, mw)
+    except ValueError:
+        MIDDLEWARE.append(mw)
+
+# If JWT_SIGNING_KEY is empty, fall back to SECRET_KEY
+if not SIMPLE_JWT.get("SIGNING_KEY"):  # noqa: F405
+    SIMPLE_JWT["SIGNING_KEY"] = SECRET_KEY  # noqa: F405
 
 NOTIFICATION_EMAILS = env.list("NOTIFICATION_EMAILS", default=[])
 NOT_STARTED_ALERTING_PERIOD_MINUTES = env.int("NOT_STARTED_ALERTING_PERIOD_MINUTES", default=15)

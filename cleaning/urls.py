@@ -33,6 +33,11 @@ admin.site.login = staff_member_required(admin.site.login, login_url='/accounts/
 admin.autodiscover()
 
 urlpatterns = [
+  # ── API ─────────────────────────────────────────────────────────────
+  path('api/v1/', include('apps.api.urls')),
+  path('api/v1/governance/', include('apps.governance.urls')),
+
+  # ── Legacy Django views ────────────────────────────────────────────
   path('adminishidden/', admin.site.urls),
   path('', include('apps.bookings.urls')),
   path('', include('apps.cleaners.urls')),

@@ -34,3 +34,10 @@ stripe==5.4.0
 twilio==8.4.0
 tzdata==2023.3
 urllib3==2.0.2
+
+# ── API Layer (added for decoupled architecture) ──────────────────────
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.4.0
+drf-spectacular==0.27.2
+cryptography>=40.0.2

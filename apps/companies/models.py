@@ -19,6 +19,12 @@ class Company(BaseDictModel):
     region = models.ForeignKey(Region, blank=True, null=True, default=None, on_delete=models.CASCADE)
     description = models.TextField(blank=True, null=True, default=None)
 
+    # Stripe Connect Express account ID for this agency
+    stripe_account_id = models.CharField(
+        max_length=64, blank=True, null=True, default=None,
+        help_text="Stripe Connect Express account ID (acct_…)"
+    )
+
     logo = models.ImageField(upload_to=UploadToPathAndRenameImage(upload_to="companies/logos/initial/"),
                              blank=True, null=True, default=None)
     logo_small = models.ImageField(upload_to=UploadToPathAndRenameImage(upload_to="companies/logos/small"),
