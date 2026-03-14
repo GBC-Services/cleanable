@@ -217,6 +217,23 @@ class GPSTrackingConsumer(AsyncJsonWebsocketConsumer):
         eta_minutes = data.get("eta_minutes")
         timestamp = data.get("timestamp", timezone.now().isoformat())
 
+        # ── Check Ghost Mode status ──────────────────────────────────
+        ghost_active = await self._is_ghost_mode_active()
+
+        # ── Always log to GPS history (even during Ghost Mode) ───────
+        await self._log_gps_history(
+            lat, lng, accuracy, heading, speed, ghost_active,
+        )
+
+        # ── If Ghost Mode is active, suppress live broadcasting ──────
+        if ghost_active:
+            await self.send_json({
+                "type": "ghost_mode_active",
+                "message": "GPS update received but broadcasting is paused (Ghost Mode).",
+                "timestamp": timestamp,
+            })
+            return
+
         # ── Persist to database ──────────────────────────────────────
         location_data = await self._persist_location(
             lat, lng, accuracy, heading, speed, eta_minutes,
@@ -401,6 +418,54 @@ class GPSTrackingConsumer(AsyncJsonWebsocketConsumer):
         ServiceProLocation.objects.filter(
             booking=self.booking,
         ).update(status=new_status)
+
+    @database_sync_to_async
+    def _is_ghost_mode_active(self):
+        """
+        Check if the connected Service Pro has Ghost Mode enabled.
+
+        Returns True if Ghost Mode is active, False otherwise.
+        Read-only check — does not modify any state.
+        """
+        if not self.service_pro:
+            return False
+
+        try:
+            from .privacy_models import GhostModeState
+            ghost_state = GhostModeState.objects.get(
+                service_pro=self.service_pro,
+            )
+            return ghost_state.is_active
+        except Exception:
+            return False
+
+    @database_sync_to_async
+    def _log_gps_history(self, lat, lng, accuracy, heading, speed, ghost_active):
+        """
+        Append an immutable GPS breadcrumb to the history log.
+
+        This runs regardless of Ghost Mode — the historical trail
+        is always preserved for Platform Admin dispute resolution.
+        The ``ghost_mode_active`` flag marks entries where the
+        Service Pro had broadcasting paused.
+        """
+        if not self.service_pro:
+            return
+
+        try:
+            from .privacy_models import GPSHistoryLog
+            GPSHistoryLog.objects.create(
+                service_pro=self.service_pro,
+                booking=self.booking,
+                latitude=lat,
+                longitude=lng,
+                accuracy_meters=accuracy,
+                heading=heading,
+                speed_mps=speed,
+                ghost_mode_active=ghost_active,
+            )
+        except Exception as exc:
+            logger.warning("Failed to log GPS history: %s", exc)
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -44,6 +44,7 @@ from django.urls import path
 
 from . import views
 from . import gps_views
+from . import privacy_views
 
 # ── Device action URLs ────────────────────────────────────────────────
 
@@ -147,5 +148,46 @@ urlpatterns = [
         "recommendations/",
         gps_views.PredictiveRecommendationsView.as_view(),
         name="iot-recommendations",
+    ),
+
+    # ── Location Privacy (Ghost Mode) ─────────────────────────────────
+    path(
+        "ghost-mode/",
+        privacy_views.GhostModeView.as_view(),
+        name="iot-ghost-mode",
+    ),
+    path(
+        "ghost-mode/checkin/",
+        privacy_views.GhostModeCheckinView.as_view(),
+        name="iot-ghost-mode-checkin",
+    ),
+
+    # ── Fleet Management (Agency Owner) ───────────────────────────────
+    path(
+        "fleet/pros/",
+        privacy_views.FleetProsView.as_view(),
+        name="iot-fleet-pros",
+    ),
+    path(
+        "fleet/strict-tracking/",
+        privacy_views.StrictTrackingView.as_view(),
+        name="iot-fleet-strict-tracking",
+    ),
+    path(
+        "fleet/alerts/",
+        privacy_views.FleetAlertsView.as_view(),
+        name="iot-fleet-alerts",
+    ),
+
+    # ── GPS History (Platform Admin) ──────────────────────────────────
+    path(
+        "gps-history/",
+        privacy_views.GPSHistoryView.as_view(),
+        name="iot-gps-history",
+    ),
+    path(
+        "gps-history/scrub/",
+        privacy_views.GPSScrubView.as_view(),
+        name="iot-gps-history-scrub",
     ),
 ]

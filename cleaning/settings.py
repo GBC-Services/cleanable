@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'crequest',
     'django_cleanup.apps.CleanupConfig',
     'import_export',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -314,6 +315,18 @@ WEATHER_API_KEY = env.str("WEATHER_API_KEY", default="")
 # ── Geofencing ───────────────────────────────────────────────────────
 GEOFENCE_RADIUS_METERS = env.float("GEOFENCE_RADIUS_METERS", default=50.0)
 GEOFENCE_AUTO_UNLOCK_ENABLED = env.bool("GEOFENCE_AUTO_UNLOCK_ENABLED", default=True)
+
+# ── Celery (Background Tasks) ────────────────────────────────────────
+CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/1")
+CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", default="redis://127.0.0.1:6379/1")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE if 'TIME_ZONE' in dir() else "UTC"
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# GPS data retention (days) — older records are auto-scrubbed
+GPS_HISTORY_RETENTION_DAYS = env.int("GPS_HISTORY_RETENTION_DAYS", default=30)
 
 STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY", default="")
 STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="")

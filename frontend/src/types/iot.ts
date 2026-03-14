@@ -324,6 +324,90 @@ export const RECOMMENDATION_TYPE_INFO: Record<
   },
 };
 
+// ── Ghost Mode & Fleet Management Types ──────────────────────────────
+
+export interface GhostModeState {
+  uuid: string;
+  is_active: boolean;
+  activated_at: string | null;
+  deactivated_at: string | null;
+  last_manual_checkin_at: string | null;
+  last_manual_checkin_lat: number | null;
+  last_manual_checkin_lng: number | null;
+  service_pro_name: string;
+  is_strict_tracking_enforced: boolean;
+}
+
+export interface StrictTrackingRule {
+  uuid: string;
+  service_pro: number;
+  service_pro_name: string;
+  service_pro_email: string;
+  is_enforced: boolean;
+  reason: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type GhostAlertResolution =
+  | "pending"
+  | "checked_in"
+  | "dismissed"
+  | "escalated";
+
+export interface GhostModeAlert {
+  uuid: string;
+  service_pro: number;
+  service_pro_name: string;
+  booking: number | null;
+  alert_type: "ghost_during_job" | "manual_checkin";
+  alert_type_display: string;
+  resolution: GhostAlertResolution;
+  resolution_display: string;
+  message: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface FleetServicePro {
+  id: number;
+  email: string;
+  full_name: string;
+  ghost_mode_active: boolean;
+  ghost_mode_since: string | null;
+  strict_tracking_enforced: boolean;
+  strict_tracking_reason: string;
+  last_gps_lat: number | null;
+  last_gps_lng: number | null;
+  last_gps_time: string | null;
+  pending_alerts_count: number;
+}
+
+export interface GPSHistoryEntry {
+  id: number;
+  service_pro: number;
+  service_pro_name: string;
+  booking: number | null;
+  latitude: number;
+  longitude: number;
+  accuracy_meters: number | null;
+  heading: number | null;
+  speed_mps: number | null;
+  ghost_mode_active: boolean;
+  recorded_at: string;
+}
+
+export const GHOST_ALERT_RESOLUTION_INFO: Record<
+  GhostAlertResolution,
+  { label: string; color: string }
+> = {
+  pending: { label: "Pending", color: "#F59E0B" },
+  checked_in: { label: "Checked In", color: "#10B981" },
+  dismissed: { label: "Dismissed", color: "#6B7280" },
+  escalated: { label: "Escalated", color: "#EF4444" },
+};
+
 export const LOCATION_STATUS_INFO: Record<
   ServiceProLocationStatus,
   { label: string; color: string; description: string }
