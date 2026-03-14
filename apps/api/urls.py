@@ -18,9 +18,17 @@ ViewSet-as-view endpoints (manually wired for custom action routing)
   bookings/             — full booking lifecycle
   wallet/               — Service Pro digital wallet
 
+IoT & Smart Home (under ``iot/``)
+-----------------------------------
+  iot/devices/…          — Connected smart-lock CRUD + OAuth
+  iot/access-tokens/…    — Time-bound access codes
+  iot/voice-links/…      — Voice-assistant platform links
+
 Standalone views
 -----------------
   webhooks/stripe/      — Stripe webhook receiver (no auth)
+  webhooks/alexa/       — Alexa Skill webhook (no auth, validated)
+  webhooks/siri/        — Siri Shortcuts webhook (Bearer JWT)
 """
 
 from django.urls import include, path
@@ -28,6 +36,7 @@ from rest_framework.routers import DefaultRouter
 
 from . import views
 from . import views_domain
+from apps.iot.views import AlexaWebhookView, SiriWebhookView
 
 # ── Router ────────────────────────────────────────────────────────────
 
@@ -161,6 +170,19 @@ urlpatterns = [
         views_domain.StripeWebhookView.as_view(),
         name="webhooks-stripe",
     ),
+    path(
+        "webhooks/alexa/",
+        AlexaWebhookView.as_view(),
+        name="webhooks-alexa",
+    ),
+    path(
+        "webhooks/siri/",
+        SiriWebhookView.as_view(),
+        name="webhooks-siri",
+    ),
+
+    # ── IoT & Smart Home ──────────────────────────────────────────────
+    path("iot/", include("apps.iot.urls")),
 
     # ── Router (admin, companies, cleanings, etc.) ────────────────────
     path("", include(router.urls)),
