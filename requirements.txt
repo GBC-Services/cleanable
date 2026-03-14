@@ -41,3 +41,8 @@ djangorestframework-simplejwt==5.3.1
 django-cors-headers==4.4.0
 drf-spectacular==0.27.2
 cryptography>=40.0.2
+
+# ── Real-Time Layer (Django Channels + GPS Tracking) ─────────────────
+channels==4.1.0
+channels-redis==4.2.0
+daphne==4.1.2

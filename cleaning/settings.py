@@ -42,6 +42,7 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.sites',
     'django.contrib.auth',
@@ -111,6 +112,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'cleaning.wsgi.application'
+ASGI_APPLICATION = 'cleaning.asgi.application'
 
 
 # Database
@@ -285,6 +287,33 @@ DEFAULT_PROFIT_RATE = env.float("DEFAULT_PROFIT_RATE", default=30)
 TIME_SLOTS = env.list("TIME_SLOTS", default=["8:00-13:00", "13:00-18:00"])
 
 MAPBOX_TOKEN = env.str("MAPBOX_TOKEN", default="")
+
+# ── Django Channels (WebSocket / Real-Time GPS Tracking) ─────────────
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": env.str(
+            "CHANNEL_LAYER_BACKEND",
+            default="channels_redis.core.RedisChannelLayer",
+        ),
+        "CONFIG": {
+            "hosts": [env.str("REDIS_URL", default="redis://127.0.0.1:6379/0")],
+            "capacity": 1500,
+            "expiry": 60,
+        },
+    },
+}
+
+# ── Cloudflare Workers AI ────────────────────────────────────────────
+CLOUDFLARE_WORKER_URL = env.str(
+    "CLOUDFLARE_WORKER_URL",
+    default="https://cleanable-predictive-booking.your-subdomain.workers.dev",
+)
+CLOUDFLARE_WORKER_API_KEY = env.str("CLOUDFLARE_WORKER_API_KEY", default="")
+WEATHER_API_KEY = env.str("WEATHER_API_KEY", default="")
+
+# ── Geofencing ───────────────────────────────────────────────────────
+GEOFENCE_RADIUS_METERS = env.float("GEOFENCE_RADIUS_METERS", default=50.0)
+GEOFENCE_AUTO_UNLOCK_ENABLED = env.bool("GEOFENCE_AUTO_UNLOCK_ENABLED", default=True)
 
 STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY", default="")
 STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="")

@@ -27,11 +27,23 @@ Voice Assistant Links
   GET    /iot/voice-links/                    — list linked platforms
   POST   /iot/voice-links/                    — link a new platform
   DELETE /iot/voice-links/{uuid}/             — unlink a platform
+
+GPS Tracking & Geofencing
+--------------------------
+  POST   /iot/gps/update/                     — HTTP fallback for GPS updates
+  GET    /iot/gps/location/{booking_id}/      — current Service Pro location
+  POST   /iot/geofence/setup/                 — create/update property geofence
+  GET    /iot/geofence/{place_id}/            — get geofence config
+
+Predictive Recommendations
+---------------------------
+  POST   /iot/recommendations/                — AI-powered booking suggestions
 """
 
 from django.urls import path
 
 from . import views
+from . import gps_views
 
 # ── Device action URLs ────────────────────────────────────────────────
 
@@ -106,5 +118,34 @@ urlpatterns = [
         "emergency-lockout/",
         views.EmergencyLockoutView.as_view(),
         name="iot-emergency-lockout",
+    ),
+
+    # ── GPS Tracking & Geofencing ─────────────────────────────────────
+    path(
+        "gps/update/",
+        gps_views.GPSUpdateView.as_view(),
+        name="iot-gps-update",
+    ),
+    path(
+        "gps/location/<int:booking_id>/",
+        gps_views.ServiceProLocationView.as_view(),
+        name="iot-gps-location",
+    ),
+    path(
+        "geofence/setup/",
+        gps_views.GeofenceSetupView.as_view(),
+        name="iot-geofence-setup",
+    ),
+    path(
+        "geofence/<int:place_id>/",
+        gps_views.GeofenceDetailView.as_view(),
+        name="iot-geofence-detail",
+    ),
+
+    # ── Predictive Recommendations ────────────────────────────────────
+    path(
+        "recommendations/",
+        gps_views.PredictiveRecommendationsView.as_view(),
+        name="iot-recommendations",
     ),
 ]
