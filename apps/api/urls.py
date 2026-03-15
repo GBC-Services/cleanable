@@ -193,6 +193,9 @@ urlpatterns = [
     # ── Support & QA ──────────────────────────────────────────────────
     path("support/", include("apps.support.api_urls")),
 
+    # ── Onboarding & Contracting ──────────────────────────────────────
+    path("onboarding/", include("apps.onboarding.api_urls")),
+
     # ── Router (admin, companies, cleanings, etc.) ────────────────────
     path("", include(router.urls)),
 ]

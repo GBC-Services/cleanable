@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cleanable — Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #F7F6F2;
+      color: #28251D;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1.5rem;
+      border-radius: 50%;
+      background: #E8F5F5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon svg {
+      width: 40px;
+      height: 40px;
+      stroke: #01696F;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #0C4E54;
+    }
+    p {
+      font-size: 0.95rem;
+      color: #7A7974;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+    button {
+      padding: 0.75rem 2rem;
+      background: #01696F;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #015459; }
+    button:active { background: #013F43; }
+    .status {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: #7A7974;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">
+      <svg viewBox="0 0 24 24">
+        <line x1="1" y1="1" x2="23" y2="23" />
+        <path d="M16.72 11.06A10.94 10.94 0 0119 12.55" />
+        <path d="M5 12.55a10.94 10.94 0 015.17-2.39" />
+        <path d="M10.71 5.05A16 16 0 0122.56 9" />
+        <path d="M1.42 9a15.91 15.91 0 014.7-2.88" />
+        <path d="M8.53 16.11a6 6 0 016.95 0" />
+        <line x1="12" y1="20" x2="12.01" y2="20" />
+      </svg>
+    </div>
+    <h1>You're Offline</h1>
+    <p>
+      No internet connection detected. Your GPS data and pending actions
+      are safely queued and will sync automatically when you're back online.
+    </p>
+    <button onclick="window.location.reload()">Try Again</button>
+    <div class="status" id="queue-status"></div>
+  </div>
+  <script>
+    // Check for queued GPS data
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'gps-sync-status') {
+          const el = document.getElementById('queue-status');
+          if (event.data.remaining > 0) {
+            el.textContent = `${event.data.remaining} GPS readings queued for sync`;
+          } else {
+            el.textContent = 'All data synced';
+          }
+        }
+      });
+    }
+
+    // Auto-retry on connectivity change
+    window.addEventListener('online', () => {
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>

@@ -16,6 +16,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { api } from "@/lib/api";
 import type { GhostModeState } from "@/types/iot";
 import VideoUpload from "@/components/verification/VideoUpload";
+import AgencyFuzzyMatch from "@/components/onboarding/AgencyFuzzyMatch";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -149,6 +150,13 @@ export default function ServiceProDashboard() {
           Manage your GPS privacy and shifts.
         </p>
       </div>
+
+      {/* Onboarding — Agency Join (shown if not yet linked to a company) */}
+      {!(user as any)?.company && !(user as any)?.company_id && (
+        <div className="mb-8">
+          <AgencyFuzzyMatch />
+        </div>
+      )}
 
       {/* Ghost Mode Card */}
       <div className="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-slate-100 overflow-hidden">
