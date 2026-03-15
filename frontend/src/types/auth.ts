@@ -10,6 +10,7 @@ export const ROLES = {
   SERVICE_PRO: 40,
   SUPPORT_ARCHITECT: 50,
   QA_INSPECTOR: 60,
+  FISCAL_AUDITOR: 70,
 } as const;
 
 export type RoleValue = (typeof ROLES)[keyof typeof ROLES];
@@ -21,6 +22,7 @@ export const ROLE_SLUGS: Record<RoleValue, string> = {
   [ROLES.SERVICE_PRO]: "service_pro",
   [ROLES.SUPPORT_ARCHITECT]: "support_architect",
   [ROLES.QA_INSPECTOR]: "qa_inspector",
+  [ROLES.FISCAL_AUDITOR]: "fiscal_auditor",
 };
 
 /** Maps role values to their dashboard base paths. */
@@ -31,6 +33,7 @@ export const ROLE_DASHBOARD_PATHS: Record<RoleValue, string> = {
   [ROLES.QA_INSPECTOR]: "/qa-inspector",
   [ROLES.SUPPORT_ARCHITECT]: "/support-architect",
   [ROLES.PLATFORM_ADMIN]: "/platform-admin",
+  [ROLES.FISCAL_AUDITOR]: "/fiscal-auditor",
 };
 
 export interface JWTPayload {

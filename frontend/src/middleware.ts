@@ -28,6 +28,7 @@ const ROLE_PATHS: Record<number, string> = {
   40: "/service-pro",
   50: "/support-architect",
   60: "/qa-inspector",
+  70: "/fiscal-auditor",
 };
 
 // ── Public paths that never require auth ─────────────────────────────
@@ -43,6 +44,7 @@ const PROTECTED_PREFIXES = [
   "/qa-inspector",
   "/support-architect",
   "/platform-admin",
+  "/fiscal-auditor",
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────

@@ -35,6 +35,7 @@ class User(AbstractUser):
     ROLE_QA_INSPECTOR = 60       # Quality assurance inspector
     ROLE_SUPPORT_ARCHITECT = 50  # Customer support / success
     ROLE_PLATFORM_ADMIN = 20     # System administrator
+    ROLE_FISCAL_AUDITOR = 70     # Payroll auditor / financial compliance
 
     # ── Legacy Aliases (for backwards‑compat in existing migrations) ──
     ROLE_CLIENT = ROLE_RESIDENT
@@ -50,6 +51,7 @@ class User(AbstractUser):
         (ROLE_QA_INSPECTOR, "QA Inspector"),
         (ROLE_SUPPORT_ARCHITECT, "Support Architect"),
         (ROLE_PLATFORM_ADMIN, "Platform Admin"),
+        (ROLE_FISCAL_AUDITOR, "Fiscal Auditor"),
     )
 
     ROLE_SLUG_MAP = {
@@ -59,6 +61,7 @@ class User(AbstractUser):
         ROLE_QA_INSPECTOR: "qa_inspector",
         ROLE_SUPPORT_ARCHITECT: "support_architect",
         ROLE_PLATFORM_ADMIN: "platform_admin",
+        ROLE_FISCAL_AUDITOR: "fiscal_auditor",
     }
 
     # ── Fields ────────────────────────────────────────────────────────
@@ -197,6 +200,10 @@ class User(AbstractUser):
     def is_support_agent(self):
         """Legacy alias for is_support_architect."""
         return self.is_support_architect
+
+    @property
+    def is_fiscal_auditor(self):
+        return self.role == self.ROLE_FISCAL_AUDITOR
 
     @property
     def is_platform_admin(self):

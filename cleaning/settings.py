@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'apps.utils',
     'apps.iot',
     'apps.onboarding',
+    'apps.payroll',
 
     # packages
     'allauth',

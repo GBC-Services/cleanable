@@ -30,6 +30,14 @@ Support & QA (under ``support/``)
   support/verify/…       — Post-job spatial verification (QA)
   support/webhooks/…     — CF Worker callbacks (triage + vision)
 
+Payroll & Fiscal Auditing (under ``payroll/``)
+------------------------------------------------
+  payroll/statements/…   — Activity statement ledger
+  payroll/cycles/…       — Payroll cycle management + CSV + payout
+  payroll/tax-documents/ — W-9 / 1099 compliance uploads
+  payroll/holds/…        — Fiscal Auditor payment overrides
+  payroll/stats/         — Dashboard KPIs
+
 Standalone views
 -----------------
   webhooks/stripe/      — Stripe webhook receiver (no auth)
@@ -195,6 +203,9 @@ urlpatterns = [
 
     # ── Onboarding & Contracting ──────────────────────────────────────
     path("onboarding/", include("apps.onboarding.api_urls")),
+
+    # ── Payroll & Fiscal Auditing ─────────────────────────────────────
+    path("payroll/", include("apps.payroll.api_urls")),
 
     # ── Router (admin, companies, cleanings, etc.) ────────────────────
     path("", include(router.urls)),
