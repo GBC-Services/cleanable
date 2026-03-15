@@ -274,3 +274,15 @@ class JobVerification(BaseModel):
 
     def __str__(self):
         return f"Verification #{self.pk} — Booking {self.booking_id}"
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  Resolution Pipeline (imported from resolution_models.py)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from apps.support.resolution_models import (  # noqa: E402, F401
+    AgencyBlacklist,
+    Complaint,
+    ComplaintNotification,
+    ResolutionAction,
+)

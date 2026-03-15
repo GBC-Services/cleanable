@@ -11,6 +11,20 @@ Tickets:
   POST      tickets/<uuid>/messages/     — add message
   GET       tickets/stats/               — dashboard stats
 
+Complaints (Resolution Pipeline):
+  GET/POST  complaints/                  — list / create (Resident submits)
+  GET       complaints/stats/            — dashboard stats
+  GET/PATCH complaints/<uuid>/           — detail / update
+  POST      complaints/<uuid>/acknowledge/ — Support Architect acknowledges
+  POST      complaints/<uuid>/refund/    — execute refund (partial/full)
+  POST      complaints/<uuid>/redo/      — schedule re-cleaning
+  POST      complaints/<uuid>/blacklist/ — cancel & blacklist agency
+  POST      complaints/<uuid>/note/      — add internal note
+  GET       complaints/<uuid>/notifications/ — notification log
+
+Blacklist:
+  GET       blacklist/                   — list all blacklisted agencies
+
 Verification (QA):
   GET/POST  verify/                      — list / upload
   GET       verify/<uuid>/               — detail
@@ -39,6 +53,18 @@ from apps.support.api_views import (
     VerificationReviewView,
     VerifyWebhookView,
 )
+from apps.support.resolution_views import (
+    AddNoteView,
+    BlacklistListView,
+    CancelBlacklistView,
+    ComplaintAcknowledgeView,
+    ComplaintDetailView,
+    ComplaintListCreateView,
+    ComplaintNotificationsView,
+    ComplaintStatsView,
+    RefundView,
+    ScheduleRedoView,
+)
 
 urlpatterns = [
     # ── Tickets ───────────────────────────────────────────────────────
@@ -47,6 +73,20 @@ urlpatterns = [
     path("tickets/<uuid:uuid>/", TicketDetailView.as_view(), name="support-ticket-detail"),
     path("tickets/<uuid:uuid>/resolve/", TicketResolveView.as_view(), name="support-ticket-resolve"),
     path("tickets/<uuid:uuid>/messages/", TicketMessageCreateView.as_view(), name="support-ticket-messages"),
+
+    # ── Complaints (Resolution Pipeline) ──────────────────────────────
+    path("complaints/", ComplaintListCreateView.as_view(), name="support-complaints"),
+    path("complaints/stats/", ComplaintStatsView.as_view(), name="support-complaints-stats"),
+    path("complaints/<uuid:uuid>/", ComplaintDetailView.as_view(), name="support-complaint-detail"),
+    path("complaints/<uuid:uuid>/acknowledge/", ComplaintAcknowledgeView.as_view(), name="support-complaint-acknowledge"),
+    path("complaints/<uuid:uuid>/refund/", RefundView.as_view(), name="support-complaint-refund"),
+    path("complaints/<uuid:uuid>/redo/", ScheduleRedoView.as_view(), name="support-complaint-redo"),
+    path("complaints/<uuid:uuid>/blacklist/", CancelBlacklistView.as_view(), name="support-complaint-blacklist"),
+    path("complaints/<uuid:uuid>/note/", AddNoteView.as_view(), name="support-complaint-note"),
+    path("complaints/<uuid:uuid>/notifications/", ComplaintNotificationsView.as_view(), name="support-complaint-notifications"),
+
+    # ── Blacklist ──────────────────────────────────────────────────────
+    path("blacklist/", BlacklistListView.as_view(), name="support-blacklist"),
 
     # ── Verification (QA) ─────────────────────────────────────────────
     path("verify/", VerificationListCreateView.as_view(), name="support-verify-list"),
