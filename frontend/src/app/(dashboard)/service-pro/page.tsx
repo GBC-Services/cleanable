@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from "@/lib/auth-store";
 import { api } from "@/lib/api";
 import type { GhostModeState } from "@/types/iot";
+import VideoUpload from "@/components/verification/VideoUpload";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -302,6 +303,11 @@ export default function ServiceProDashboard() {
             </>
           )}
         </div>
+      </div>
+
+      {/* Post-Job Verification */}
+      <div className="mb-6">
+        <VideoUpload bookingId={0} />
       </div>
 
       {/* Quick Info Cards */}

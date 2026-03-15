@@ -1,0 +1,12 @@
+name = "cleanable-support-triage"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[ai]
+binding = "AI"
+
+[vars]
+ENVIRONMENT = "production"
+
+# Secrets (set via `wrangler secret put`):
+# - CLEANABLE_API_KEY

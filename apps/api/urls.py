@@ -24,6 +24,12 @@ IoT & Smart Home (under ``iot/``)
   iot/access-tokens/…    — Time-bound access codes
   iot/voice-links/…      — Voice-assistant platform links
 
+Support & QA (under ``support/``)
+-----------------------------------
+  support/tickets/…      — AI-triaged support ticket CRUD
+  support/verify/…       — Post-job spatial verification (QA)
+  support/webhooks/…     — CF Worker callbacks (triage + vision)
+
 Standalone views
 -----------------
   webhooks/stripe/      — Stripe webhook receiver (no auth)
@@ -183,6 +189,9 @@ urlpatterns = [
 
     # ── IoT & Smart Home ──────────────────────────────────────────────
     path("iot/", include("apps.iot.urls")),
+
+    # ── Support & QA ──────────────────────────────────────────────────
+    path("support/", include("apps.support.api_urls")),
 
     # ── Router (admin, companies, cleanings, etc.) ────────────────────
     path("", include(router.urls)),
