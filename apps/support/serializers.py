@@ -2,8 +2,8 @@
 Support & QA Serializers
 ========================
 
-DRF serializers for the support ticket pipeline and spatial
-verification QA flow.
+DRF serializers for the support ticket pipeline, spatial
+verification QA flow, and GDPR media purge.
 """
 
 from rest_framework import serializers
@@ -192,6 +192,7 @@ class JobVerificationListSerializer(serializers.ModelSerializer):
             "status", "status_display",
             "cleanliness_score", "ai_summary",
             "issues_detected", "analyzed_at",
+            "privacy_scrubbed", "ai_opt_out",
             "reviewed_by", "reviewer_notes", "reviewed_at",
             "created", "updated",
         ]
@@ -205,7 +206,7 @@ class JobVerificationListSerializer(serializers.ModelSerializer):
 class JobVerificationDetailSerializer(JobVerificationListSerializer):
     class Meta(JobVerificationListSerializer.Meta):
         fields = JobVerificationListSerializer.Meta.fields + [
-            "ai_analysis",
+            "ai_analysis", "privacy_metadata", "r2_key",
         ]
 
 
@@ -236,3 +237,25 @@ class JobVerificationReviewSerializer(serializers.Serializer):
         ],
     )
     reviewer_notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  GDPR Purge Media Serializer
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class PurgeMediaSerializer(serializers.Serializer):
+    """
+    Request body for the GDPR 'Right to be Forgotten' media purge.
+    Requires the target Resident's user ID and a justification reason.
+    """
+
+    resident_id = serializers.IntegerField(
+        help_text="The user ID of the Resident whose media should be purged.",
+    )
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="GDPR Right to be Forgotten",
+        help_text="Justification for the purge (e.g., 'GDPR erasure request #1234').",
+    )

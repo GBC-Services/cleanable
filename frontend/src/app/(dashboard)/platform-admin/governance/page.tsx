@@ -9,6 +9,7 @@ import type {
   BreakGlassSession,
 } from "@/types/governance";
 import { CATEGORY_META, SEVERITY_META } from "@/types/governance";
+import PurgeMedia from "@/components/privacy/PurgeMedia";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -176,7 +177,7 @@ function BreakGlassRow({ session }: { session: BreakGlassSession }) {
 
 // ── Main Dashboard ───────────────────────────────────────────────────
 
-type Tab = "toggles" | "audit" | "break-glass";
+type Tab = "toggles" | "audit" | "break-glass" | "gdpr";
 
 export default function GovernanceDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("toggles");
@@ -273,6 +274,7 @@ export default function GovernanceDashboard() {
     { key: "toggles", label: "Kill Switches" },
     { key: "audit", label: "Audit Log", badge: auditLogs.length },
     { key: "break-glass", label: "Break-Glass", badge: activeBGCount || undefined },
+    { key: "gdpr", label: "GDPR Purge" },
   ];
 
   // ── Render ───────────────────────────────────────────────────────
@@ -502,6 +504,12 @@ export default function GovernanceDashboard() {
               No break-glass sessions recorded.
             </p>
           )}
+        </div>
+      )}
+
+      {activeTab === "gdpr" && (
+        <div className="mx-auto max-w-xl">
+          <PurgeMedia />
         </div>
       )}
     </div>

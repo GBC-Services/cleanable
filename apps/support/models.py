@@ -236,6 +236,27 @@ class JobVerification(BaseModel):
     )
     analyzed_at = models.DateTimeField(blank=True, null=True, default=None)
 
+    # ── Privacy Detection ─────────────────────────────────────────────
+    privacy_metadata = models.JSONField(
+        blank=True, null=True, default=None,
+        help_text=(
+            "Privacy detection results from CF Worker: detected faces, "
+            "family photos, sensitive documents, blur regions."
+        ),
+    )
+    r2_key = models.CharField(
+        max_length=512, blank=True, null=True, default=None,
+        help_text="Cloudflare R2 object key for stored verification media.",
+    )
+    privacy_scrubbed = models.BooleanField(
+        default=False,
+        help_text="True if privacy-sensitive content was detected and blur metadata was applied.",
+    )
+    ai_opt_out = models.BooleanField(
+        default=False,
+        help_text="True if the Resident opted out of AI processing for this verification.",
+    )
+
     # ── Manual Review (QA Inspector override) ─────────────────────────
     reviewed_by = models.ForeignKey(
         UserModel, blank=True, null=True, default=None,

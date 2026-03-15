@@ -5,6 +5,10 @@ compatibility_date = "2024-12-01"
 [ai]
 binding = "AI"
 
+[[r2_buckets]]
+binding = "VERIFICATION_MEDIA"
+bucket_name = "cleanable-verification-media"
+
 [vars]
 ENVIRONMENT = "production"
 

@@ -16,6 +16,9 @@ Verification (QA):
   GET       verify/<uuid>/               — detail
   POST      verify/<uuid>/review/        — manual review
 
+Privacy / GDPR:
+  POST      purge-media/                 — GDPR purge all media for a Resident
+
 Webhooks (CF Worker callbacks):
   POST      webhooks/triage/             — AI triage callback
   POST      webhooks/verify/             — vision QA callback
@@ -24,6 +27,7 @@ Webhooks (CF Worker callbacks):
 from django.urls import path
 
 from apps.support.api_views import (
+    PurgeMediaView,
     TicketDetailView,
     TicketListCreateView,
     TicketMessageCreateView,
@@ -48,6 +52,9 @@ urlpatterns = [
     path("verify/", VerificationListCreateView.as_view(), name="support-verify-list"),
     path("verify/<uuid:uuid>/", VerificationDetailView.as_view(), name="support-verify-detail"),
     path("verify/<uuid:uuid>/review/", VerificationReviewView.as_view(), name="support-verify-review"),
+
+    # ── Privacy / GDPR ────────────────────────────────────────────────
+    path("purge-media/", PurgeMediaView.as_view(), name="support-purge-media"),
 
     # ── Webhooks (CF Worker callbacks) ────────────────────────────────
     path("webhooks/triage/", TriageWebhookView.as_view(), name="support-webhook-triage"),

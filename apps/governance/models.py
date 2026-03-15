@@ -233,6 +233,14 @@ class PrivacyPreferences(models.Model):
         default=False,
         help_text="Share booking history with assigned agency for personalization.",
     )
+    resident_ai_processing_opt_out = models.BooleanField(
+        default=False,
+        help_text=(
+            "When True, Service Pro verification videos bypass Cloudflare AI "
+            "analysis entirely and are routed to a human QA Inspector or "
+            "Agency Owner for manual approval."
+        ),
+    )
 
     # ── Service Pro-Specific Toggles ──────────────────────────────────
     # (Only enforced when user.role == ROLE_SERVICE_PRO)
@@ -349,6 +357,7 @@ class PrivacyPreferences(models.Model):
                 "resident_allow_spatial_video": self.resident_allow_spatial_video and spatial_global,
                 "resident_allow_ai_scoring": self.resident_allow_ai_scoring and ai_global,
                 "resident_share_booking_history": self.resident_share_booking_history,
+                "resident_ai_processing_opt_out": self.resident_ai_processing_opt_out,
             })
 
         elif user_role == User.ROLE_SERVICE_PRO:

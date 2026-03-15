@@ -2,8 +2,8 @@
  * Support & QA Types
  * ===================
  *
- * TypeScript interfaces for the AI-driven support triage pipeline
- * and post-job spatial verification (QA).
+ * TypeScript interfaces for the AI-driven support triage pipeline,
+ * post-job spatial verification (QA), privacy detection, and GDPR purge.
  */
 
 // ── Ticket Status ────────────────────────────────────────────────────
@@ -271,6 +271,25 @@ export const VERIFICATION_STATUS_INFO: Record<
   },
 };
 
+// ── Privacy Detection ────────────────────────────────────────────────
+
+export interface BlurRegion {
+  type: "face" | "photo" | "document";
+  description: string;
+  confidence: number;
+}
+
+export interface PrivacyDetection {
+  has_faces: boolean;
+  has_family_photos: boolean;
+  has_sensitive_documents: boolean;
+  detected_items: string[];
+  privacy_risk_score: number;
+  blur_regions: BlurRegion[];
+}
+
+// ── Job Verification (extended with privacy fields) ──────────────────
+
 export interface JobVerification {
   id: number;
   uuid: string;
@@ -287,6 +306,10 @@ export interface JobVerification {
   ai_analysis?: Record<string, unknown> | null;
   issues_detected: string[] | null;
   analyzed_at: string | null;
+  privacy_metadata?: PrivacyDetection | null;
+  privacy_scrubbed: boolean;
+  ai_opt_out: boolean;
+  r2_key?: string | null;
   reviewed_by: number | null;
   reviewer_notes: string | null;
   reviewed_at: string | null;
@@ -297,4 +320,19 @@ export interface JobVerification {
 export interface VerificationReviewPayload {
   status: 30 | 50; // APPROVED or REJECTED
   reviewer_notes?: string;
+}
+
+// ── GDPR Purge Media ─────────────────────────────────────────────────
+
+export interface PurgeMediaPayload {
+  resident_id: number;
+  reason?: string;
+}
+
+export interface PurgeMediaResponse {
+  detail: string;
+  purged_count: number;
+  purged_verification_ids: number[];
+  resident_id: number;
+  resident_email: string;
 }
