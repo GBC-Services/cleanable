@@ -17,6 +17,8 @@ from apps.users.models import User
 from .models import (
     BreakGlassSession,
     GovernanceAuditLog,
+    NotificationPreference,
+    PlatformIntegration,
     PrivacyPreferences,
     SystemFeatureToggle,
 )
@@ -320,3 +322,126 @@ class GovernanceAuditLogSerializer(serializers.ModelSerializer):
             "timestamp",
         )
         read_only_fields = fields
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  PlatformIntegration
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class PlatformIntegrationSerializer(serializers.ModelSerializer):
+    """Full serializer for Platform Admin CRUD on integrations."""
+
+    toggled_by_email = serializers.EmailField(
+        source="toggled_by.email", read_only=True, default="",
+    )
+
+    class Meta:
+        model = PlatformIntegration
+        fields = (
+            "id", "slug", "name", "description",
+            "category", "icon",
+            "is_enabled", "config",
+            "toggled_by", "toggled_by_email", "toggled_at",
+            "created_at", "updated_at",
+        )
+        read_only_fields = (
+            "id", "slug", "name", "description", "category", "icon",
+            "toggled_by", "toggled_by_email", "toggled_at",
+            "created_at", "updated_at",
+        )
+
+    def update(self, instance, validated_data):
+        request = self.context.get("request")
+        if "is_enabled" in validated_data:
+            instance.is_enabled = validated_data["is_enabled"]
+            instance.toggled_by = request.user if request else None
+            instance.toggled_at = timezone.now()
+        if "config" in validated_data:
+            instance.config = validated_data["config"]
+        instance.save()
+        return instance
+
+
+class PlatformIntegrationListSerializer(serializers.ModelSerializer):
+    """Lightweight list serializer."""
+
+    class Meta:
+        model = PlatformIntegration
+        fields = (
+            "id", "slug", "name", "category", "icon",
+            "is_enabled", "toggled_at",
+        )
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  NotificationPreference
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class NotificationPreferenceSerializer(serializers.ModelSerializer):
+    """Per-user notification matrix entry."""
+
+    event_label = serializers.SerializerMethodField()
+    event_category = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NotificationPreference
+        fields = (
+            "id", "event_slug", "event_label", "event_category",
+            "in_app", "sms", "email",
+            "created_at", "updated_at",
+        )
+        read_only_fields = (
+            "id", "event_slug", "event_label", "event_category",
+            "created_at", "updated_at",
+        )
+
+    def get_event_label(self, obj):
+        return dict(NotificationPreference.EVENT_CHOICES).get(
+            obj.event_slug, obj.event_slug,
+        )
+
+    def get_event_category(self, obj):
+        return NotificationPreference.EVENT_CATEGORY_MAP.get(
+            obj.event_slug, "Other",
+        )
+
+
+class NotificationPreferenceBulkUpdateSerializer(serializers.Serializer):
+    """
+    Accepts a list of {event_slug, in_app, sms, email} dicts
+    to bulk-update the user's notification matrix in one request.
+    """
+
+    preferences = serializers.ListField(
+        child=serializers.DictField(),
+        min_length=1,
+        help_text="List of {event_slug, in_app, sms, email} dicts.",
+    )
+
+    def validate_preferences(self, value):
+        valid_slugs = {s for s, _ in NotificationPreference.EVENT_CHOICES}
+        for item in value:
+            if "event_slug" not in item:
+                raise serializers.ValidationError(
+                    "Each preference must include 'event_slug'."
+                )
+            if item["event_slug"] not in valid_slugs:
+                raise serializers.ValidationError(
+                    f"Unknown event slug: {item['event_slug']}"
+                )
+            for channel in ("in_app", "sms", "email"):
+                if channel in item and not isinstance(item[channel], bool):
+                    raise serializers.ValidationError(
+                        f"'{channel}' must be a boolean."
+                    )
+        return value
+
+
+class LifecycleEventSerializer(serializers.Serializer):
+    """Read-only representation of a lifecycle event definition."""
+
+    slug = serializers.CharField()
+    label = serializers.CharField()
+    category = serializers.CharField()

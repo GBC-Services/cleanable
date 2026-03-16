@@ -20,6 +20,8 @@ from apps.users.models import User
 from .models import (
     BreakGlassSession,
     GovernanceAuditLog,
+    NotificationPreference,
+    PlatformIntegration,
     PrivacyPreferences,
     SystemFeatureToggle,
 )
@@ -36,6 +38,11 @@ from .serializers import (
     BreakGlassRequestSerializer,
     BreakGlassSessionSerializer,
     GovernanceAuditLogSerializer,
+    LifecycleEventSerializer,
+    NotificationPreferenceBulkUpdateSerializer,
+    NotificationPreferenceSerializer,
+    PlatformIntegrationListSerializer,
+    PlatformIntegrationSerializer,
     PrivacyPreferencesAdminSerializer,
     PrivacyPreferencesSerializer,
     SystemFeatureToggleListSerializer,
@@ -308,3 +315,126 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(timestamp__gte=since)
 
         return qs
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  5. PlatformIntegration — Cybernetic Command Center
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class PlatformIntegrationViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    GET   /api/v1/governance/integrations/            — list all integrations
+    GET   /api/v1/governance/integrations/{slug}/     — detail
+    PATCH /api/v1/governance/integrations/{slug}/     — update is_enabled / config
+    POST  /api/v1/governance/integrations/{slug}/toggle/ — flip state
+
+    Platform Admin only.  Integration slugs are seeded via migration.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanManageFeatureToggles]
+    lookup_field = "slug"
+
+    def get_queryset(self):
+        qs = PlatformIntegration.objects.all()
+        category = self.request.query_params.get("category")
+        if category:
+            qs = qs.filter(category=category)
+        return qs
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return PlatformIntegrationListSerializer
+        return PlatformIntegrationSerializer
+
+    @action(detail=True, methods=["post"], url_path="toggle")
+    def toggle(self, request, slug=None):
+        """
+        POST /api/v1/governance/integrations/{slug}/toggle/
+        Flips the current state (enabled ↔ disabled).
+        """
+        instance = self.get_object()
+        instance.is_enabled = not instance.is_enabled
+        instance.toggled_by = request.user
+        instance.toggled_at = timezone.now()
+        instance.save(update_fields=[
+            "is_enabled", "toggled_by", "toggled_at", "updated_at",
+        ])
+        return Response(PlatformIntegrationSerializer(instance).data)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  6. NotificationPreference — Per-User Notification Matrix
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class MyNotificationPreferencesView(APIView):
+    """
+    GET  /api/v1/governance/notifications/me/
+         — list current user's notification matrix (auto-seeds defaults)
+    PUT  /api/v1/governance/notifications/me/
+         — bulk-update the entire matrix
+
+    All authenticated users.  Each user manages their own matrix.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        prefs = NotificationPreference.get_or_create_defaults(request.user)
+        serializer = NotificationPreferenceSerializer(prefs, many=True)
+        return Response(serializer.data)
+
+    def put(self, request):
+        bulk_serializer = NotificationPreferenceBulkUpdateSerializer(
+            data=request.data,
+        )
+        bulk_serializer.is_valid(raise_exception=True)
+
+        items = bulk_serializer.validated_data["preferences"]
+
+        # Ensure defaults exist first
+        NotificationPreference.get_or_create_defaults(request.user)
+
+        updated = []
+        for item in items:
+            slug = item["event_slug"]
+            update_fields = {}
+            for channel in ("in_app", "sms", "email"):
+                if channel in item:
+                    update_fields[channel] = item[channel]
+
+            if update_fields:
+                NotificationPreference.objects.filter(
+                    user=request.user, event_slug=slug,
+                ).update(**update_fields)
+                updated.append(slug)
+
+        # Return the full updated matrix
+        prefs = NotificationPreference.objects.filter(user=request.user)
+        serializer = NotificationPreferenceSerializer(prefs, many=True)
+        return Response({
+            "updated_count": len(updated),
+            "preferences": serializer.data,
+        })
+
+
+class LifecycleEventsView(APIView):
+    """
+    GET /api/v1/governance/notifications/events/
+        — list all lifecycle event definitions (for building the UI grid)
+
+    Public for all authenticated users.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        events = NotificationPreference.get_event_choices_list()
+        serializer = LifecycleEventSerializer(events, many=True)
+        return Response(serializer.data)

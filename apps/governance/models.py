@@ -741,3 +741,254 @@ class GovernanceAuditLog(models.Model):
             ip_address=ip_address,
             user_agent=user_agent,
         )
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  5. PlatformIntegration — Proactive & Third-Party Toggles
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class PlatformIntegration(models.Model):
+    """
+    Admin-managed integration toggles for the Cybernetic Command Center.
+
+    Each row represents a configurable platform integration with:
+      - A global enabled/disabled switch
+      - Optional JSON configuration (API keys, thresholds, etc.)
+      - Categorization by integration type
+
+    Seeded integrations:
+      - ``predictive_booking``   — AI-driven booking suggestions
+      - ``alexa_voice_booking``  — Amazon Alexa voice hooks
+      - ``homepod_siri_booking`` — Apple HomePod / Siri integration
+      - ``smart_lock_api``       — Smart Lock API access for Service Pros
+    """
+
+    # ── Integration categories ─────────────────────────────────────────
+    CATEGORY_PROACTIVE = "proactive"
+    CATEGORY_VOICE = "voice"
+    CATEGORY_DEVICE = "device"
+    CATEGORY_CHOICES = (
+        (CATEGORY_PROACTIVE, "Proactive Intelligence"),
+        (CATEGORY_VOICE, "Voice Assistants"),
+        (CATEGORY_DEVICE, "Device Access"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    slug = models.SlugField(max_length=80, unique=True, db_index=True)
+    name = models.CharField(max_length=120)
+    description = models.TextField(
+        blank=True, default="",
+        help_text="Human-readable explanation of what this integration does.",
+    )
+    category = models.CharField(
+        max_length=24, choices=CATEGORY_CHOICES, default=CATEGORY_PROACTIVE,
+    )
+    icon = models.CharField(
+        max_length=40, blank=True, default="",
+        help_text="Lucide icon name for the UI (e.g. 'brain', 'mic', 'lock').",
+    )
+
+    is_enabled = models.BooleanField(
+        default=False,
+        help_text="Master switch — when False, this integration is off platform-wide.",
+    )
+
+    # ── Configuration ──────────────────────────────────────────────────
+    config = models.JSONField(
+        default=dict, blank=True,
+        help_text=(
+            "Integration-specific configuration.  For predictive_booking: "
+            "{'holiday_patterns': true, 'weather_triggers': true, 'suggestion_threshold': 0.7}.  "
+            "For voice integrations: {'webhook_url': '...', 'skill_id': '...'}.  "
+            "For smart_lock_api: {'auto_generate_codes': true, 'code_validity_minutes': 120}."
+        ),
+    )
+
+    # ── Metadata ──────────────────────────────────────────────────────
+    toggled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="toggled_integrations",
+    )
+    toggled_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["category", "name"]
+        verbose_name = "Platform Integration"
+        verbose_name_plural = "Platform Integrations"
+
+    def __str__(self):
+        state = "ON" if self.is_enabled else "OFF"
+        return f"[{state}] {self.name}"
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  6. NotificationPreference — Per-User, Per-Event, Per-Channel Matrix
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class NotificationPreference(models.Model):
+    """
+    Granular per-user notification preferences.  Each row represents
+    one lifecycle event for one user, with toggles for each channel.
+
+    Lifecycle events cover the full cleaning workflow::
+
+        Booking → Job Assignment → Job Started → Job Completed →
+        QA Review → Payout Ready → Geofence Events → Alerts
+
+    Channels:
+      - ``in_app``  — In-app notification / toast
+      - ``sms``     — SMS via Twilio
+      - ``email``   — Email via SendGrid
+
+    The combination of (user, event_slug) is unique — one row per
+    event per user.
+    """
+
+    # ── Lifecycle event slugs ──────────────────────────────────────────
+    EVENT_BOOKING_CREATED = "booking_created"
+    EVENT_BOOKING_CONFIRMED = "booking_confirmed"
+    EVENT_BOOKING_CANCELLED = "booking_cancelled"
+    EVENT_JOB_ASSIGNED = "job_assigned"
+    EVENT_JOB_STARTED = "job_started"
+    EVENT_JOB_COMPLETED = "job_completed"
+    EVENT_QA_REVIEW_READY = "qa_review_ready"
+    EVENT_QA_PASSED = "qa_passed"
+    EVENT_QA_FAILED = "qa_failed"
+    EVENT_PAYOUT_READY = "payout_ready"
+    EVENT_PAYOUT_SENT = "payout_sent"
+    EVENT_GEOFENCE_ENTER = "geofence_enter"
+    EVENT_GEOFENCE_EXIT = "geofence_exit"
+    EVENT_GEOFENCE_BREACH = "geofence_breach"
+    EVENT_SMART_LOCK_ACCESS = "smart_lock_access"
+    EVENT_COMPLAINT_FILED = "complaint_filed"
+    EVENT_COMPLAINT_RESOLVED = "complaint_resolved"
+    EVENT_BREAK_GLASS_ACTIVATED = "break_glass_activated"
+    EVENT_SYSTEM_ALERT = "system_alert"
+
+    EVENT_CHOICES = (
+        (EVENT_BOOKING_CREATED, "Booking Created"),
+        (EVENT_BOOKING_CONFIRMED, "Booking Confirmed"),
+        (EVENT_BOOKING_CANCELLED, "Booking Cancelled"),
+        (EVENT_JOB_ASSIGNED, "Job Assigned"),
+        (EVENT_JOB_STARTED, "Job Started"),
+        (EVENT_JOB_COMPLETED, "Job Completed"),
+        (EVENT_QA_REVIEW_READY, "QA Review Ready"),
+        (EVENT_QA_PASSED, "QA Passed"),
+        (EVENT_QA_FAILED, "QA Failed"),
+        (EVENT_PAYOUT_READY, "Payout Ready"),
+        (EVENT_PAYOUT_SENT, "Payout Sent"),
+        (EVENT_GEOFENCE_ENTER, "Geofence Enter"),
+        (EVENT_GEOFENCE_EXIT, "Geofence Exit"),
+        (EVENT_GEOFENCE_BREACH, "Geofence Breach"),
+        (EVENT_SMART_LOCK_ACCESS, "Smart Lock Access"),
+        (EVENT_COMPLAINT_FILED, "Complaint Filed"),
+        (EVENT_COMPLAINT_RESOLVED, "Complaint Resolved"),
+        (EVENT_BREAK_GLASS_ACTIVATED, "Break-Glass Activated"),
+        (EVENT_SYSTEM_ALERT, "System Alert"),
+    )
+
+    # ── Event categories for UI grouping ───────────────────────────────
+    EVENT_CATEGORY_MAP = {
+        EVENT_BOOKING_CREATED: "Bookings",
+        EVENT_BOOKING_CONFIRMED: "Bookings",
+        EVENT_BOOKING_CANCELLED: "Bookings",
+        EVENT_JOB_ASSIGNED: "Jobs",
+        EVENT_JOB_STARTED: "Jobs",
+        EVENT_JOB_COMPLETED: "Jobs",
+        EVENT_QA_REVIEW_READY: "Quality Assurance",
+        EVENT_QA_PASSED: "Quality Assurance",
+        EVENT_QA_FAILED: "Quality Assurance",
+        EVENT_PAYOUT_READY: "Payroll",
+        EVENT_PAYOUT_SENT: "Payroll",
+        EVENT_GEOFENCE_ENTER: "Location",
+        EVENT_GEOFENCE_EXIT: "Location",
+        EVENT_GEOFENCE_BREACH: "Location",
+        EVENT_SMART_LOCK_ACCESS: "IoT & Devices",
+        EVENT_COMPLAINT_FILED: "Support",
+        EVENT_COMPLAINT_RESOLVED: "Support",
+        EVENT_BREAK_GLASS_ACTIVATED: "Security",
+        EVENT_SYSTEM_ALERT: "Security",
+    }
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notification_preferences",
+    )
+    event_slug = models.CharField(
+        max_length=40, choices=EVENT_CHOICES, db_index=True,
+    )
+
+    # ── Channel toggles ───────────────────────────────────────────────
+    in_app = models.BooleanField(
+        default=True,
+        help_text="Show in-app notification / toast.",
+    )
+    sms = models.BooleanField(
+        default=False,
+        help_text="Send SMS notification via Twilio.",
+    )
+    email = models.BooleanField(
+        default=True,
+        help_text="Send email notification.",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["user", "event_slug"]
+        verbose_name = "Notification Preference"
+        verbose_name_plural = "Notification Preferences"
+        unique_together = [("user", "event_slug")]
+        indexes = [
+            models.Index(fields=["user", "event_slug"], name="idx_notifpref_user_event"),
+        ]
+
+    def __str__(self):
+        channels = []
+        if self.in_app:
+            channels.append("app")
+        if self.sms:
+            channels.append("sms")
+        if self.email:
+            channels.append("email")
+        ch_str = ",".join(channels) or "none"
+        return f"{self.user.email} | {self.event_slug} → [{ch_str}]"
+
+    @classmethod
+    def get_event_choices_list(cls):
+        """Return event definitions with categories for the frontend."""
+        return [
+            {
+                "slug": slug,
+                "label": label,
+                "category": cls.EVENT_CATEGORY_MAP.get(slug, "Other"),
+            }
+            for slug, label in cls.EVENT_CHOICES
+        ]
+
+    @classmethod
+    def get_or_create_defaults(cls, user):
+        """
+        Ensure the user has a NotificationPreference row for every
+        lifecycle event.  Returns a queryset of all their preferences.
+        """
+        existing_slugs = set(
+            cls.objects.filter(user=user).values_list("event_slug", flat=True)
+        )
+        to_create = [
+            cls(user=user, event_slug=slug)
+            for slug, _ in cls.EVENT_CHOICES
+            if slug not in existing_slugs
+        ]
+        if to_create:
+            cls.objects.bulk_create(to_create, ignore_conflicts=True)
+        return cls.objects.filter(user=user)
