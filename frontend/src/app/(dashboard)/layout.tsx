@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuthStore } from "@/lib/auth-store";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ROLES } from "@/types/auth";
 import CommandPalette from "@/components/CommandPalette";
 
@@ -67,14 +67,20 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, isAuthenticated, logout } = useAuthStore();
+  const [hydrated, setHydrated] = useState(false);
+
+  // Wait for Zustand to rehydrate from localStorage before acting on auth state
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (hydrated && !isAuthenticated) {
       window.location.href = "/login";
     }
-  }, [isAuthenticated]);
+  }, [hydrated, isAuthenticated]);
 
-  if (!isAuthenticated || !user) {
+  if (!hydrated || !isAuthenticated || !user) {
     return null;
   }
 
