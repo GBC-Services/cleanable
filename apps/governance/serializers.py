@@ -3,7 +3,8 @@ Governance Serializers
 ======================
 
 DRF serializers for system feature toggles, privacy preferences,
-break-glass sessions, and audit logs.
+break-glass sessions, audit logs, secret vault, permission matrix,
+and user security actions.
 
 The privacy serializer uses role-aware field filtering — Residents
 see only ``resident_*`` fields, Service Pros see only ``pro_*``
@@ -20,7 +21,10 @@ from .models import (
     NotificationPreference,
     PlatformIntegration,
     PrivacyPreferences,
+    RolePermissionMatrix,
+    SecretVault,
     SystemFeatureToggle,
+    UserSecurityAction,
 )
 
 
@@ -445,3 +449,227 @@ class LifecycleEventSerializer(serializers.Serializer):
     slug = serializers.CharField()
     label = serializers.CharField()
     category = serializers.CharField()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  SecretVault
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class SecretVaultSerializer(serializers.ModelSerializer):
+    """
+    Full serializer for vault entries.  NEVER exposes encrypted_value.
+    Uses masked_value for display.
+    """
+
+    masked_value = serializers.CharField(read_only=True)
+    is_due_for_rotation = serializers.BooleanField(read_only=True)
+    created_by_email = serializers.EmailField(
+        source="created_by.email", read_only=True, default="",
+    )
+    revoked_by_email = serializers.EmailField(
+        source="revoked_by.email", read_only=True, default="",
+    )
+
+    class Meta:
+        model = SecretVault
+        fields = (
+            "id", "label", "provider", "scope", "environment", "status",
+            "masked_value", "key_prefix", "key_hint",
+            "auto_rotate", "rotation_interval_days",
+            "last_rotated_at", "next_rotation_at", "rotation_count",
+            "created_by", "created_by_email",
+            "revoked_by", "revoked_by_email", "revoked_at", "revoke_reason",
+            "notes",
+            "is_due_for_rotation",
+            "created_at", "updated_at",
+        )
+        read_only_fields = (
+            "id", "masked_value", "key_prefix", "key_hint",
+            "last_rotated_at", "next_rotation_at", "rotation_count",
+            "created_by", "created_by_email",
+            "revoked_by", "revoked_by_email", "revoked_at", "revoke_reason",
+            "is_due_for_rotation",
+            "created_at", "updated_at",
+        )
+
+
+class SecretVaultCreateSerializer(serializers.ModelSerializer):
+    """Create serializer — accepts the raw key value."""
+
+    class Meta:
+        model = SecretVault
+        fields = (
+            "label", "provider", "scope", "environment",
+            "encrypted_value",
+            "auto_rotate", "rotation_interval_days",
+            "notes",
+        )
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request:
+            validated_data["created_by"] = request.user
+        return super().create(validated_data)
+
+
+class SecretVaultRotateSerializer(serializers.Serializer):
+    """Payload for rotating a secret to a new value."""
+
+    new_value = serializers.CharField(
+        min_length=8,
+        help_text="The new API key or secret value.",
+    )
+
+
+class SecretVaultRevokeSerializer(serializers.Serializer):
+    """Payload for revoking a secret."""
+
+    reason = serializers.CharField(
+        required=False, default="",
+        help_text="Reason for revocation.",
+    )
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  RolePermissionMatrix
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class RolePermissionMatrixSerializer(serializers.ModelSerializer):
+    """Single entry in the role × permission grid."""
+
+    role_display = serializers.SerializerMethodField()
+    permission_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RolePermissionMatrix
+        fields = (
+            "id", "role", "role_display",
+            "permission", "permission_display",
+            "is_granted",
+            "updated_by",
+            "created_at", "updated_at",
+        )
+        read_only_fields = (
+            "id", "role_display", "permission_display",
+            "updated_by", "created_at", "updated_at",
+        )
+
+    def get_role_display(self, obj):
+        role_map = dict(User.ROLES)
+        return role_map.get(obj.role, f"Role {obj.role}")
+
+    def get_permission_display(self, obj):
+        perm_map = dict(RolePermissionMatrix.PERMISSION_CHOICES)
+        return perm_map.get(obj.permission, obj.permission)
+
+
+class RolePermissionMatrixBulkUpdateSerializer(serializers.Serializer):
+    """Bulk update the permission matrix."""
+
+    entries = serializers.ListField(
+        child=serializers.DictField(),
+        min_length=1,
+        help_text="List of {role, permission, is_granted} dicts.",
+    )
+
+    def validate_entries(self, value):
+        valid_roles = {r for r, _ in User.ROLES}
+        valid_perms = {p for p, _ in RolePermissionMatrix.PERMISSION_CHOICES}
+
+        for item in value:
+            if "role" not in item or "permission" not in item:
+                raise serializers.ValidationError(
+                    "Each entry must include 'role' and 'permission'."
+                )
+            if item["role"] not in valid_roles:
+                raise serializers.ValidationError(
+                    f"Unknown role: {item['role']}"
+                )
+            if item["permission"] not in valid_perms:
+                raise serializers.ValidationError(
+                    f"Unknown permission: {item['permission']}"
+                )
+            if "is_granted" in item and not isinstance(item["is_granted"], bool):
+                raise serializers.ValidationError(
+                    "'is_granted' must be a boolean."
+                )
+        return value
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  UserSecurityAction
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class UserSecurityActionSerializer(serializers.ModelSerializer):
+    """Read serializer for security action history."""
+
+    admin_email = serializers.EmailField(
+        source="admin.email", read_only=True, default="",
+    )
+    target_user_email = serializers.EmailField(
+        source="target_user.email", read_only=True,
+    )
+    target_user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserSecurityAction
+        fields = (
+            "id", "admin", "admin_email",
+            "target_user", "target_user_email", "target_user_name",
+            "action", "status", "reason", "metadata",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_target_user_name(self, obj):
+        return obj.target_user.get_full_name() or obj.target_user.email
+
+
+class UserSecurityActionCreateSerializer(serializers.Serializer):
+    """Create a security action (password reset, MFA manage, etc.)."""
+
+    target_user_id = serializers.IntegerField()
+    action = serializers.ChoiceField(
+        choices=UserSecurityAction.ACTION_CHOICES,
+    )
+    reason = serializers.CharField(required=False, default="")
+
+    def validate_target_user_id(self, value):
+        try:
+            User.objects.get(pk=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
+        return value
+
+
+class AdminUserListSerializer(serializers.ModelSerializer):
+    """Lightweight user serializer for admin user management."""
+
+    role_display = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
+    mfa_enabled = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            "id", "email", "first_name", "last_name", "full_name",
+            "role", "role_display",
+            "is_active", "is_verified", "is_superuser",
+            "mfa_enabled",
+            "date_joined", "last_login",
+        )
+        read_only_fields = fields
+
+    def get_role_display(self, obj):
+        return dict(User.ROLES).get(obj.role, f"Role {obj.role}")
+
+    def get_full_name(self, obj):
+        return obj.get_full_name() or obj.email
+
+    def get_mfa_enabled(self, obj):
+        # MFA state — currently a placeholder; in production this would
+        # check django-otp or similar
+        return False

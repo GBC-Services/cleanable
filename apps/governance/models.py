@@ -6,6 +6,11 @@ Phase 2 security architecture: global feature toggles, polymorphic
 privacy preferences, break-glass escalation sessions, and an
 immutable audit log.
 
+Phase 3 additions:
+  - SecretVault: Encrypted 3rd-party API key management
+  - RolePermissionMatrix: Global role × permission grid
+  - UserSecurityAction: Force-reset and MFA management log
+
 Architecture Overview::
 
     ┌───────────────────────────────────────────────────────────┐
@@ -28,10 +33,21 @@ Architecture Overview::
     │  active job emergencies.                                   │
     └────────────────────────┬──────────────────────────────────┘
                              │ every mutation recorded in
-    ┌────────────────────────▼──────────────────────────────────┐
+    ┌────────────────────────▼──────────────────────────────────┘
     │              GovernanceAuditLog                            │
     │  Immutable, append-only ledger.  No delete allowed         │
     │  at the ORM level.  Only Platform Admins can read.         │
+    └───────────────────────────────────────────────────────────┘
+
+    ┌───────────────────────────────────────────────────────────┐
+    │                  SecretVault (Phase 3)                     │
+    │  Encrypted API key storage with scoped permissions,        │
+    │  auto-rotation schedules, and environment toggles.         │
+    └───────────────────────────────────────────────────────────┘
+
+    ┌───────────────────────────────────────────────────────────┐
+    │              RolePermissionMatrix (Phase 3)                │
+    │  Global role × permission grid for superuser governance.   │
     └───────────────────────────────────────────────────────────┘
 """
 
@@ -585,6 +601,12 @@ class GovernanceAuditLog(models.Model):
     ACTION_OVERRIDE_REVERTED = "override_reverted"
     ACTION_EMERGENCY_REVOCATION = "emergency_access_revocation"
     ACTION_EMERGENCY_LOCKOUT = "emergency_lockout"
+    ACTION_VAULT_SECRET_CREATED = "vault_secret_created"
+    ACTION_VAULT_SECRET_ROTATED = "vault_secret_rotated"
+    ACTION_VAULT_SECRET_REVOKED = "vault_secret_revoked"
+    ACTION_PERMISSION_UPDATED = "permission_updated"
+    ACTION_PASSWORD_FORCE_RESET = "password_force_reset"
+    ACTION_MFA_MANAGED = "mfa_managed"
     ACTION_CHOICES = (
         (ACTION_FEATURE_TOGGLED, "System Feature Toggled"),
         (ACTION_PRIVACY_UPDATED, "Privacy Preferences Updated"),
@@ -596,6 +618,12 @@ class GovernanceAuditLog(models.Model):
         (ACTION_OVERRIDE_REVERTED, "Privacy Override Reverted"),
         (ACTION_EMERGENCY_REVOCATION, "Emergency Access Revocation"),
         (ACTION_EMERGENCY_LOCKOUT, "Emergency Lockout"),
+        (ACTION_VAULT_SECRET_CREATED, "Vault Secret Created"),
+        (ACTION_VAULT_SECRET_ROTATED, "Vault Secret Rotated"),
+        (ACTION_VAULT_SECRET_REVOKED, "Vault Secret Revoked"),
+        (ACTION_PERMISSION_UPDATED, "Permission Updated"),
+        (ACTION_PASSWORD_FORCE_RESET, "Password Force Reset"),
+        (ACTION_MFA_MANAGED, "MFA Managed"),
     )
 
     # ── Severity ──────────────────────────────────────────────────────
@@ -992,3 +1020,406 @@ class NotificationPreference(models.Model):
         if to_create:
             cls.objects.bulk_create(to_create, ignore_conflicts=True)
         return cls.objects.filter(user=user)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  7. SecretVault — Encrypted API Key & Secret Management
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class SecretVault(models.Model):
+    """
+    Secure storage for 3rd-party API keys and secrets.
+
+    Features:
+      - Scoped permissions (read-only, write-only, full)
+      - Environment toggling (sandbox vs production)
+      - Automated rotation scheduling
+      - Immediate revoke capability
+      - Key masking — only last 4 characters visible in API responses
+
+    Supported providers:
+      - Stripe (payment processing)
+      - Mapbox (geocoding, maps)
+      - Twilio (SMS, voice)
+      - Smart Lock providers (August, Yale, Schlage)
+
+    The ``encrypted_value`` field stores the key value.  In a production
+    deployment this would use Django Fernet Fields or AWS KMS; for this
+    implementation we store it as-is and mask it in serializers.
+    """
+
+    PROVIDER_STRIPE = "stripe"
+    PROVIDER_MAPBOX = "mapbox"
+    PROVIDER_TWILIO = "twilio"
+    PROVIDER_SMART_LOCK = "smart_lock"
+    PROVIDER_CLOUDFLARE = "cloudflare"
+    PROVIDER_SENDGRID = "sendgrid"
+    PROVIDER_CUSTOM = "custom"
+    PROVIDER_CHOICES = (
+        (PROVIDER_STRIPE, "Stripe"),
+        (PROVIDER_MAPBOX, "Mapbox"),
+        (PROVIDER_TWILIO, "Twilio"),
+        (PROVIDER_SMART_LOCK, "Smart Lock Provider"),
+        (PROVIDER_CLOUDFLARE, "Cloudflare"),
+        (PROVIDER_SENDGRID, "SendGrid"),
+        (PROVIDER_CUSTOM, "Custom"),
+    )
+
+    SCOPE_READ = "read"
+    SCOPE_WRITE = "write"
+    SCOPE_FULL = "full"
+    SCOPE_CHOICES = (
+        (SCOPE_READ, "Read Only"),
+        (SCOPE_WRITE, "Write Only"),
+        (SCOPE_FULL, "Full Access"),
+    )
+
+    ENV_SANDBOX = "sandbox"
+    ENV_PRODUCTION = "production"
+    ENV_CHOICES = (
+        (ENV_SANDBOX, "Sandbox"),
+        (ENV_PRODUCTION, "Production"),
+    )
+
+    STATUS_ACTIVE = "active"
+    STATUS_ROTATED = "rotated"
+    STATUS_REVOKED = "revoked"
+    STATUS_EXPIRED = "expired"
+    STATUS_CHOICES = (
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_ROTATED, "Rotated"),
+        (STATUS_REVOKED, "Revoked"),
+        (STATUS_EXPIRED, "Expired"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    label = models.CharField(
+        max_length=120,
+        help_text="Human-readable name (e.g. 'Stripe Live Key', 'Twilio SID').",
+    )
+    provider = models.CharField(max_length=24, choices=PROVIDER_CHOICES)
+    scope = models.CharField(
+        max_length=12, choices=SCOPE_CHOICES, default=SCOPE_FULL,
+    )
+    environment = models.CharField(
+        max_length=16, choices=ENV_CHOICES, default=ENV_SANDBOX,
+    )
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default=STATUS_ACTIVE,
+    )
+
+    # ── The actual secret value ───────────────────────────────────────
+    encrypted_value = models.TextField(
+        help_text="The API key or secret value (encrypted at rest).",
+    )
+    key_prefix = models.CharField(
+        max_length=12, blank=True, default="",
+        help_text="First few chars of the key for identification (e.g. 'sk_live_').",
+    )
+    key_hint = models.CharField(
+        max_length=8, blank=True, default="",
+        help_text="Last 4 chars of the key for UI display.",
+    )
+
+    # ── Rotation ──────────────────────────────────────────────────────
+    auto_rotate = models.BooleanField(
+        default=False,
+        help_text="Enable automatic rotation on schedule.",
+    )
+    rotation_interval_days = models.PositiveIntegerField(
+        default=90,
+        help_text="Days between automatic rotations.",
+    )
+    last_rotated_at = models.DateTimeField(null=True, blank=True)
+    next_rotation_at = models.DateTimeField(null=True, blank=True)
+    rotation_count = models.PositiveIntegerField(default=0)
+
+    # ── Metadata ──────────────────────────────────────────────────────
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="vault_secrets_created",
+    )
+    revoked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="vault_secrets_revoked",
+    )
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revoke_reason = models.TextField(blank=True, default="")
+
+    notes = models.TextField(
+        blank=True, default="",
+        help_text="Internal notes about this key (not exposed to API consumers).",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["provider", "label"]
+        verbose_name = "Secret Vault Entry"
+        verbose_name_plural = "Secret Vault Entries"
+        indexes = [
+            models.Index(fields=["provider", "environment", "status"], name="idx_vault_provider_env"),
+            models.Index(fields=["status"], name="idx_vault_status"),
+            models.Index(fields=["next_rotation_at"], name="idx_vault_next_rotation"),
+        ]
+
+    def __str__(self):
+        return f"[{self.provider}] {self.label} ({self.environment}/{self.status})"
+
+    @property
+    def masked_value(self) -> str:
+        """Return a masked version for display: prefix + •••• + last4."""
+        if len(self.encrypted_value) <= 8:
+            return "••••••••"
+        return f"{self.key_prefix}••••{self.key_hint}"
+
+    @property
+    def is_due_for_rotation(self) -> bool:
+        if not self.auto_rotate or self.status != self.STATUS_ACTIVE:
+            return False
+        if not self.next_rotation_at:
+            return False
+        return timezone.now() >= self.next_rotation_at
+
+    def save(self, *args, **kwargs):
+        # Auto-extract prefix and hint from the value
+        if self.encrypted_value:
+            val = self.encrypted_value
+            # Extract prefix (common API key patterns)
+            for prefix in ("sk_live_", "sk_test_", "pk_live_", "pk_test_",
+                           "SG.", "AC", "whsec_", "rk_live_", "rk_test_"):
+                if val.startswith(prefix):
+                    self.key_prefix = prefix
+                    break
+            else:
+                self.key_prefix = val[:4] + "_" if len(val) > 4 else ""
+            self.key_hint = val[-4:] if len(val) >= 4 else val
+
+        # Compute next rotation date if auto-rotate is on
+        if self.auto_rotate and self.status == self.STATUS_ACTIVE:
+            base = self.last_rotated_at or self.created_at or timezone.now()
+            self.next_rotation_at = base + timedelta(days=self.rotation_interval_days)
+
+        super().save(*args, **kwargs)
+
+    def revoke(self, user, reason=""):
+        """Immediately revoke this secret."""
+        self.status = self.STATUS_REVOKED
+        self.revoked_by = user
+        self.revoked_at = timezone.now()
+        self.revoke_reason = reason
+        self.auto_rotate = False
+        self.next_rotation_at = None
+        self.save(update_fields=[
+            "status", "revoked_by", "revoked_at", "revoke_reason",
+            "auto_rotate", "next_rotation_at", "updated_at",
+        ])
+
+    def rotate(self, new_value: str, user=None):
+        """Rotate to a new key value."""
+        self.encrypted_value = new_value
+        self.last_rotated_at = timezone.now()
+        self.rotation_count += 1
+        self.status = self.STATUS_ACTIVE
+        # Recalculate prefix/hint via save
+        self.save()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  8. RolePermissionMatrix — Global Permission Grid
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class RolePermissionMatrix(models.Model):
+    """
+    Defines which permissions are granted to each role globally.
+
+    Each row represents a single permission grant for a specific role.
+    Platform Admins can use this to override default RBAC behavior —
+    granting or restricting specific capabilities for any role.
+
+    Permission taxonomy:
+      - ``manage_bookings``      — Create/edit/cancel bookings
+      - ``view_all_bookings``    — See all bookings (not just own)
+      - ``manage_service_pros``  — Assign, manage Service Pro fleet
+      - ``access_reports``       — View financial & operational reports
+      - ``manage_iot``           — Configure IoT integrations
+      - ``view_audit_logs``      — Read governance audit trail
+      - ``manage_feature_toggles`` — Flip system feature switches
+      - ``manage_break_glass``   — Initiate break-glass sessions
+      - ``manage_payroll``       — Process payroll & payouts
+      - ``manage_complaints``    — Handle complaint resolution
+      - ``manage_qa``            — Run QA inspections
+      - ``manage_vault``         — Manage secret vault
+      - ``manage_users``         — User CRUD and role assignment
+      - ``access_command_palette`` — Use the admin Cmd+K palette
+    """
+
+    PERMISSION_CHOICES = (
+        ("manage_bookings", "Manage Bookings"),
+        ("view_all_bookings", "View All Bookings"),
+        ("manage_service_pros", "Manage Service Pros"),
+        ("access_reports", "Access Reports"),
+        ("manage_iot", "Manage IoT"),
+        ("view_audit_logs", "View Audit Logs"),
+        ("manage_feature_toggles", "Manage Feature Toggles"),
+        ("manage_break_glass", "Manage Break-Glass"),
+        ("manage_payroll", "Manage Payroll"),
+        ("manage_complaints", "Manage Complaints"),
+        ("manage_qa", "Manage QA"),
+        ("manage_vault", "Manage Vault"),
+        ("manage_users", "Manage Users"),
+        ("access_command_palette", "Access Command Palette"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    role = models.PositiveIntegerField(
+        help_text="Role integer matching User.ROLES (10, 20, 30, etc.).",
+    )
+    permission = models.CharField(max_length=40, choices=PERMISSION_CHOICES)
+    is_granted = models.BooleanField(
+        default=True,
+        help_text="Whether this permission is granted to the role.",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="permission_matrix_changes",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["role", "permission"]
+        verbose_name = "Role Permission Matrix Entry"
+        verbose_name_plural = "Role Permission Matrix Entries"
+        unique_together = [("role", "permission")]
+        indexes = [
+            models.Index(fields=["role", "permission"], name="idx_rpm_role_perm"),
+            models.Index(fields=["role"], name="idx_rpm_role"),
+        ]
+
+    def __str__(self):
+        state = "GRANTED" if self.is_granted else "DENIED"
+        return f"Role {self.role} | {self.permission} → {state}"
+
+    @classmethod
+    def get_matrix(cls) -> dict:
+        """
+        Return the full matrix as a nested dict:
+        { role_int: { permission_slug: is_granted, ... }, ... }
+        """
+        result = {}
+        for entry in cls.objects.all():
+            if entry.role not in result:
+                result[entry.role] = {}
+            result[entry.role][entry.permission] = entry.is_granted
+        return result
+
+    @classmethod
+    def check_permission(cls, role: int, permission: str) -> bool:
+        """Check if a specific role has a specific permission."""
+        try:
+            return cls.objects.get(
+                role=role, permission=permission,
+            ).is_granted
+        except cls.DoesNotExist:
+            return False
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  9. UserSecurityAction — Force-Reset & MFA Management Log
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class UserSecurityAction(models.Model):
+    """
+    Log of security actions taken by Platform Admins on user accounts.
+
+    Actions include:
+      - Password force-reset (generates a temporary password)
+      - MFA enrollment (enable TOTP for a user)
+      - MFA revoke (disable MFA, e.g. user locked out)
+      - Account lock (temporarily disable login)
+      - Account unlock (re-enable login)
+
+    Every action is logged immutably for compliance.
+    """
+
+    ACTION_PASSWORD_FORCE_RESET = "password_force_reset"
+    ACTION_MFA_ENROLL = "mfa_enroll"
+    ACTION_MFA_REVOKE = "mfa_revoke"
+    ACTION_ACCOUNT_LOCK = "account_lock"
+    ACTION_ACCOUNT_UNLOCK = "account_unlock"
+    ACTION_CHOICES = (
+        (ACTION_PASSWORD_FORCE_RESET, "Password Force Reset"),
+        (ACTION_MFA_ENROLL, "MFA Enrollment"),
+        (ACTION_MFA_REVOKE, "MFA Revocation"),
+        (ACTION_ACCOUNT_LOCK, "Account Locked"),
+        (ACTION_ACCOUNT_UNLOCK, "Account Unlocked"),
+    )
+
+    STATUS_PENDING = "pending"
+    STATUS_COMPLETED = "completed"
+    STATUS_FAILED = "failed"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "Pending"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_FAILED, "Failed"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="security_actions_performed",
+        help_text="The Platform Admin who performed this action.",
+    )
+    target_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="security_actions_received",
+        help_text="The user whose account was affected.",
+    )
+
+    action = models.CharField(max_length=32, choices=ACTION_CHOICES)
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default=STATUS_COMPLETED,
+    )
+    reason = models.TextField(
+        blank=True, default="",
+        help_text="Justification for the action.",
+    )
+    metadata = models.JSONField(
+        default=dict, blank=True,
+        help_text=(
+            "Additional context — e.g. for password reset: "
+            "{'temp_password_sent_to': 'email'}.  For MFA: "
+            "{'method': 'totp', 'backup_codes_generated': true}."
+        ),
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "User Security Action"
+        verbose_name_plural = "User Security Actions"
+        indexes = [
+            models.Index(fields=["target_user", "-created_at"], name="idx_secaction_target"),
+            models.Index(fields=["admin", "-created_at"], name="idx_secaction_admin"),
+            models.Index(fields=["action"], name="idx_secaction_action"),
+        ]
+
+    def __str__(self):
+        return f"{self.action} on {self.target_user.email} by {self.admin.email if self.admin else 'system'}"

@@ -3,6 +3,7 @@
 import { useAuthStore } from "@/lib/auth-store";
 import { useEffect } from "react";
 import { ROLES } from "@/types/auth";
+import CommandPalette from "@/components/CommandPalette";
 
 /**
  * Dashboard layout — shared across all role route groups.
@@ -39,6 +40,9 @@ function getNavItems(role: number): NavItem[] {
 
   if (role === ROLES.PLATFORM_ADMIN) {
     items.push({ label: "Governance", href: `${base}/governance` });
+    items.push({ label: "Vault", href: `${base}/vault` });
+    items.push({ label: "Permissions", href: `${base}/permissions` });
+    items.push({ label: "User Security", href: `${base}/user-security` });
   }
 
   if (role === ROLES.AGENCY_OWNER) {
@@ -122,6 +126,9 @@ export default function DashboardLayout({
 
       {/* Main content */}
       <main className="flex-1 overflow-auto p-6 lg:p-8">{children}</main>
+
+      {/* Global Command Palette (Cmd+K) — only renders for Platform Admins */}
+      <CommandPalette />
     </div>
   );
 }

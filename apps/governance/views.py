@@ -7,8 +7,16 @@ Endpoints for:
   - All users: read/update own privacy preferences
   - Support Architects: request and manage break-glass sessions
   - Break-glass overrides: apply/revert privacy overrides
+  - Vault: secret key management (Platform Admin only)
+  - Permissions Matrix: role × permission grid (Platform Admin only)
+  - User Security: force-reset, MFA management (Platform Admin only)
+  - Command Palette: search endpoint for admin global search
 """
 
+import secrets
+import string
+
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, mixins, permissions, status, viewsets
@@ -23,7 +31,10 @@ from .models import (
     NotificationPreference,
     PlatformIntegration,
     PrivacyPreferences,
+    RolePermissionMatrix,
+    SecretVault,
     SystemFeatureToggle,
+    UserSecurityAction,
 )
 from .permissions import (
     BreakGlassOverride,
@@ -34,6 +45,7 @@ from .permissions import (
     HasBreakGlassAccess,
 )
 from .serializers import (
+    AdminUserListSerializer,
     BreakGlassOverrideSerializer,
     BreakGlassRequestSerializer,
     BreakGlassSessionSerializer,
@@ -45,8 +57,16 @@ from .serializers import (
     PlatformIntegrationSerializer,
     PrivacyPreferencesAdminSerializer,
     PrivacyPreferencesSerializer,
+    RolePermissionMatrixBulkUpdateSerializer,
+    RolePermissionMatrixSerializer,
+    SecretVaultCreateSerializer,
+    SecretVaultRevokeSerializer,
+    SecretVaultRotateSerializer,
+    SecretVaultSerializer,
     SystemFeatureToggleListSerializer,
     SystemFeatureToggleSerializer,
+    UserSecurityActionCreateSerializer,
+    UserSecurityActionSerializer,
 )
 
 
@@ -438,3 +458,453 @@ class LifecycleEventsView(APIView):
         events = NotificationPreference.get_event_choices_list()
         serializer = LifecycleEventSerializer(events, many=True)
         return Response(serializer.data)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  7. SecretVault — API Key & Secret Management
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class SecretVaultViewSet(viewsets.ModelViewSet):
+    """
+    CRUD + rotate + revoke for secret vault entries.
+
+    GET    /api/v1/governance/vault/              — list all secrets
+    POST   /api/v1/governance/vault/              — create new secret
+    GET    /api/v1/governance/vault/{id}/          — detail
+    PATCH  /api/v1/governance/vault/{id}/          — update metadata
+    DELETE /api/v1/governance/vault/{id}/          — hard delete
+    POST   /api/v1/governance/vault/{id}/rotate/   — rotate to new value
+    POST   /api/v1/governance/vault/{id}/revoke/   — immediately revoke
+
+    Platform Admin only.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanManageFeatureToggles]
+
+    def get_queryset(self):
+        qs = SecretVault.objects.select_related("created_by", "revoked_by")
+        provider = self.request.query_params.get("provider")
+        if provider:
+            qs = qs.filter(provider=provider)
+        env = self.request.query_params.get("environment")
+        if env:
+            qs = qs.filter(environment=env)
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return SecretVaultCreateSerializer
+        return SecretVaultSerializer
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        GovernanceAuditLog.log(
+            action=GovernanceAuditLog.ACTION_VAULT_SECRET_CREATED,
+            description=f"Created vault secret '{instance.label}' for {instance.provider} ({instance.environment})",
+            actor=self.request.user,
+            severity=GovernanceAuditLog.SEVERITY_WARNING,
+            changes={
+                "provider": instance.provider,
+                "scope": instance.scope,
+                "environment": instance.environment,
+            },
+        )
+
+    @action(detail=True, methods=["post"])
+    def rotate(self, request, pk=None):
+        """Rotate a secret to a new value."""
+        instance = self.get_object()
+
+        if instance.status == SecretVault.STATUS_REVOKED:
+            return Response(
+                {"detail": "Cannot rotate a revoked secret."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = SecretVaultRotateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        old_hint = instance.key_hint
+        instance.rotate(serializer.validated_data["new_value"], user=request.user)
+
+        GovernanceAuditLog.log(
+            action=GovernanceAuditLog.ACTION_VAULT_SECRET_ROTATED,
+            description=f"Rotated vault secret '{instance.label}' (rotation #{instance.rotation_count})",
+            actor=request.user,
+            severity=GovernanceAuditLog.SEVERITY_WARNING,
+            changes={
+                "old_hint": old_hint,
+                "new_hint": instance.key_hint,
+                "rotation_count": instance.rotation_count,
+            },
+        )
+
+        return Response(SecretVaultSerializer(instance).data)
+
+    @action(detail=True, methods=["post"])
+    def revoke(self, request, pk=None):
+        """Immediately revoke a secret."""
+        instance = self.get_object()
+
+        if instance.status == SecretVault.STATUS_REVOKED:
+            return Response(
+                {"detail": "Secret is already revoked."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = SecretVaultRevokeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        instance.revoke(
+            user=request.user,
+            reason=serializer.validated_data.get("reason", ""),
+        )
+
+        GovernanceAuditLog.log(
+            action=GovernanceAuditLog.ACTION_VAULT_SECRET_REVOKED,
+            description=f"Revoked vault secret '{instance.label}' — {serializer.validated_data.get('reason', 'No reason provided')}",
+            actor=request.user,
+            severity=GovernanceAuditLog.SEVERITY_CRITICAL,
+            changes={
+                "provider": instance.provider,
+                "environment": instance.environment,
+                "reason": serializer.validated_data.get("reason", ""),
+            },
+        )
+
+        return Response(SecretVaultSerializer(instance).data)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  8. RolePermissionMatrix — Global Permission Grid
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class RolePermissionMatrixView(APIView):
+    """
+    GET  /api/v1/governance/permissions/matrix/
+         — full role × permission grid
+
+    PUT  /api/v1/governance/permissions/matrix/
+         — bulk update entries
+
+    Platform Admin only.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanManageFeatureToggles]
+
+    def get(self, request):
+        entries = RolePermissionMatrix.objects.all()
+        serializer = RolePermissionMatrixSerializer(entries, many=True)
+
+        # Also return metadata for building the grid UI
+        roles = [{"value": r, "label": l} for r, l in User.ROLES]
+        perms = [
+            {"value": p, "label": l}
+            for p, l in RolePermissionMatrix.PERMISSION_CHOICES
+        ]
+
+        return Response({
+            "entries": serializer.data,
+            "roles": roles,
+            "permissions": perms,
+            "matrix": RolePermissionMatrix.get_matrix(),
+        })
+
+    def put(self, request):
+        serializer = RolePermissionMatrixBulkUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        entries = serializer.validated_data["entries"]
+        updated = []
+
+        for item in entries:
+            obj, created = RolePermissionMatrix.objects.update_or_create(
+                role=item["role"],
+                permission=item["permission"],
+                defaults={
+                    "is_granted": item.get("is_granted", True),
+                    "updated_by": request.user,
+                },
+            )
+            updated.append(obj)
+
+            GovernanceAuditLog.log(
+                action=GovernanceAuditLog.ACTION_PERMISSION_UPDATED,
+                description=(
+                    f"{'Granted' if obj.is_granted else 'Revoked'} "
+                    f"'{obj.permission}' for role {obj.role}"
+                ),
+                actor=request.user,
+                severity=GovernanceAuditLog.SEVERITY_WARNING,
+                changes={
+                    "role": obj.role,
+                    "permission": obj.permission,
+                    "is_granted": obj.is_granted,
+                },
+            )
+
+        # Return updated matrix
+        all_entries = RolePermissionMatrix.objects.all()
+        return Response({
+            "updated_count": len(updated),
+            "entries": RolePermissionMatrixSerializer(all_entries, many=True).data,
+            "matrix": RolePermissionMatrix.get_matrix(),
+        })
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  9. User Security — Force-Reset, MFA Management
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class UserSecurityView(APIView):
+    """
+    GET  /api/v1/governance/user-security/
+         — list all users with security status
+
+    POST /api/v1/governance/user-security/action/
+         — perform a security action (password reset, MFA manage, etc.)
+
+    GET  /api/v1/governance/user-security/history/
+         — list all security actions
+
+    Platform Admin only.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanManageFeatureToggles]
+
+    def get(self, request):
+        """List all users with security metadata."""
+        qs = User.objects.all().order_by("-date_joined")
+
+        # Filtering
+        role = request.query_params.get("role")
+        if role:
+            qs = qs.filter(role=int(role))
+
+        search = request.query_params.get("search")
+        if search:
+            qs = qs.filter(
+                Q(email__icontains=search)
+                | Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+            )
+
+        serializer = AdminUserListSerializer(qs[:100], many=True)
+        return Response(serializer.data)
+
+
+class UserSecurityActionView(APIView):
+    """
+    POST /api/v1/governance/user-security/action/
+         — perform a security action
+
+    Platform Admin only.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanManageFeatureToggles]
+
+    def post(self, request):
+        serializer = UserSecurityActionCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        target_user = User.objects.get(pk=serializer.validated_data["target_user_id"])
+        action_type = serializer.validated_data["action"]
+        reason = serializer.validated_data.get("reason", "")
+
+        metadata = {}
+
+        if action_type == UserSecurityAction.ACTION_PASSWORD_FORCE_RESET:
+            # Generate a temporary password
+            temp_password = "".join(
+                secrets.choice(string.ascii_letters + string.digits + "!@#$%")
+                for _ in range(16)
+            )
+            target_user.set_password(temp_password)
+            target_user.save(update_fields=["password"])
+            metadata = {
+                "temp_password": temp_password,
+                "sent_to": target_user.email,
+            }
+
+        elif action_type == UserSecurityAction.ACTION_MFA_ENROLL:
+            metadata = {"method": "totp", "status": "enrolled"}
+
+        elif action_type == UserSecurityAction.ACTION_MFA_REVOKE:
+            metadata = {"method": "totp", "status": "revoked"}
+
+        elif action_type == UserSecurityAction.ACTION_ACCOUNT_LOCK:
+            target_user.is_active = False
+            target_user.save(update_fields=["is_active"])
+            metadata = {"locked": True}
+
+        elif action_type == UserSecurityAction.ACTION_ACCOUNT_UNLOCK:
+            target_user.is_active = True
+            target_user.save(update_fields=["is_active"])
+            metadata = {"locked": False}
+
+        # Log the action
+        action_record = UserSecurityAction.objects.create(
+            admin=request.user,
+            target_user=target_user,
+            action=action_type,
+            status=UserSecurityAction.STATUS_COMPLETED,
+            reason=reason,
+            metadata=metadata,
+        )
+
+        # Also log to governance audit
+        GovernanceAuditLog.log(
+            action=(
+                GovernanceAuditLog.ACTION_PASSWORD_FORCE_RESET
+                if action_type == UserSecurityAction.ACTION_PASSWORD_FORCE_RESET
+                else GovernanceAuditLog.ACTION_MFA_MANAGED
+            ),
+            description=f"{action_type} on {target_user.email} by {request.user.email}",
+            actor=request.user,
+            target_user=target_user,
+            severity=GovernanceAuditLog.SEVERITY_CRITICAL,
+            changes=metadata,
+        )
+
+        return Response(
+            UserSecurityActionSerializer(action_record).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class UserSecurityHistoryView(APIView):
+    """
+    GET /api/v1/governance/user-security/history/
+        — list security action history
+
+    Platform Admin only.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanManageFeatureToggles]
+
+    def get(self, request):
+        qs = UserSecurityAction.objects.select_related(
+            "admin", "target_user",
+        ).all()
+
+        target_user_id = request.query_params.get("target_user")
+        if target_user_id:
+            qs = qs.filter(target_user_id=target_user_id)
+
+        action_filter = request.query_params.get("action")
+        if action_filter:
+            qs = qs.filter(action=action_filter)
+
+        serializer = UserSecurityActionSerializer(qs[:100], many=True)
+        return Response(serializer.data)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  10. Command Palette — Admin Global Search
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class CommandPaletteSearchView(APIView):
+    """
+    GET /api/v1/governance/command-palette/search/?q=...
+        — search users, secrets, settings
+
+    Platform Admin only.  Returns categorized results for the
+    Cmd+K command palette.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, CanManageFeatureToggles]
+
+    def get(self, request):
+        query = request.query_params.get("q", "").strip()
+        if not query or len(query) < 2:
+            return Response({"results": []})
+
+        results = []
+
+        # Search users
+        users = User.objects.filter(
+            Q(email__icontains=query)
+            | Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+        )[:5]
+        for u in users:
+            role_label = dict(User.ROLES).get(u.role, "Unknown")
+            results.append({
+                "type": "user",
+                "id": u.id,
+                "title": u.get_full_name() or u.email,
+                "subtitle": f"{role_label} — {u.email}",
+                "url": f"/platform-admin/user-security?user={u.id}",
+            })
+
+        # Search vault secrets
+        secrets_qs = SecretVault.objects.filter(
+            Q(label__icontains=query)
+            | Q(provider__icontains=query)
+        )[:5]
+        for s in secrets_qs:
+            results.append({
+                "type": "vault",
+                "id": str(s.id),
+                "title": s.label,
+                "subtitle": f"{s.get_provider_display()} — {s.get_environment_display()} — {s.get_status_display()}",
+                "url": "/platform-admin/vault",
+            })
+
+        # Search feature toggles
+        toggles = SystemFeatureToggle.objects.filter(
+            Q(name__icontains=query)
+            | Q(slug__icontains=query)
+        )[:5]
+        for t in toggles:
+            state = "Enabled" if t.is_enabled else "Disabled"
+            results.append({
+                "type": "feature",
+                "id": str(t.id),
+                "title": t.name,
+                "subtitle": f"Feature Toggle — {state}",
+                "url": "/platform-admin/governance",
+            })
+
+        # Search integrations
+        integrations = PlatformIntegration.objects.filter(
+            Q(name__icontains=query)
+            | Q(slug__icontains=query)
+        )[:5]
+        for i in integrations:
+            state = "Enabled" if i.is_enabled else "Disabled"
+            results.append({
+                "type": "integration",
+                "id": str(i.id),
+                "title": i.name,
+                "subtitle": f"Integration — {state}",
+                "url": "/platform-admin/command-center",
+            })
+
+        # Admin navigation commands
+        nav_commands = [
+            {"title": "Vault", "subtitle": "Manage API keys and secrets", "url": "/platform-admin/vault"},
+            {"title": "Permissions Matrix", "subtitle": "Role permission grid", "url": "/platform-admin/permissions"},
+            {"title": "User Security", "subtitle": "Password resets, MFA, account locks", "url": "/platform-admin/user-security"},
+            {"title": "Governance", "subtitle": "Feature toggles, privacy, break-glass", "url": "/platform-admin/governance"},
+            {"title": "Command Center", "subtitle": "Integration toggles, notifications", "url": "/platform-admin/command-center"},
+            {"title": "Dashboard", "subtitle": "Platform admin overview", "url": "/platform-admin"},
+        ]
+        for cmd in nav_commands:
+            if query.lower() in cmd["title"].lower() or query.lower() in cmd["subtitle"].lower():
+                results.append({
+                    "type": "navigation",
+                    "id": cmd["url"],
+                    "title": cmd["title"],
+                    "subtitle": cmd["subtitle"],
+                    "url": cmd["url"],
+                })
+
+        return Response({"results": results[:20]})
